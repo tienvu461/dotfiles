@@ -68,7 +68,7 @@ ZSH_THEME="agnoster_newline"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+plugins=(git git-flow brew history node npm kubectl eksctl)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -118,11 +118,7 @@ complete -C '/usr/local/bin/aws_completer' aws
 
 export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
 [[ -r /usr/local/etc/profile.d/bash_completion.sh ]] && . /usr/local/etc/profile.d/bash_completion.sh
-yq() {
-  docker run --rm -i -v "${PWD}":/workdir mikefarah/yq "$@"
-}
-alias envsubst='/usr/local/Cellar/gettext/0.21/bin/envsubst'
-plugins=(git git-flow brew history node npm kubectl eksctl)
+
 export LBC_VERSION="v2.0.0"
 source <(kubectl completion zsh)
 # eksctl

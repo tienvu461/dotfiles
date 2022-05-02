@@ -13,9 +13,10 @@ Plug 'numToStr/Comment.nvim'
 
 " fuzzy search
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-
+Plug 'junegunn/fzf.vim'
 " Git
-Plug 'airblade/vim-gitgutter'
+" Plug 'airblade/vim-gitgutter'
+Plug 'tpope/vim-fugitive'
 
 " for theme and color and appearance
 Plug 'shaunsingh/nord.nvim'
@@ -107,6 +108,12 @@ let g:NERDTreeDirArrowExpandable = '▸'
 let g:NERDTreeDirArrowCollapsible = '▾'
 let NERDTreeShowHidden=1
 
+" FZF and Repgrip
+nnoremap <silent> <C-f> :Rg<Cr>
+nnoremap <silent> <C-p> :GFiles<Cr>
+command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
+let g:fzf_layout = { 'down':  '40%'}
+
 " Use tab for trigger completion with characters ahead and navigate.
 " NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
 " other plugin before putting this into your config.
@@ -152,6 +159,7 @@ nmap <leader>f  <Plug>(coc-format-selected)
 
 " my custom remap
 nnoremap <silent> <S-t> :tabnew<CR>
+
 " Auto Commands
 augroup auto_commands
 	autocmd BufWrite *.py call CocAction('format')
