@@ -1,0 +1,11 @@
+[user]
+    name = vlttvu 
+    email = vlttvu@mediba.jp
+[alias]
+    s = status
+    ba = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
+    undo = reset HEAD~1 --mixed
+    lg = !git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30
+    adog = log --all --decorate --oneline --graph
+
+
