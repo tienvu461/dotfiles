@@ -68,7 +68,7 @@ ZSH_THEME="agnoster_newline"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git git-flow brew history node npm kubectl eksctl)
+plugins=(git git-flow brew history node npm)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -120,7 +120,7 @@ export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
 [[ -r /usr/local/etc/profile.d/bash_completion.sh ]] && . /usr/local/etc/profile.d/bash_completion.sh
 
 export LBC_VERSION="v2.0.0"
-source <(kubectl completion zsh)
+# source <(kubectl completion zsh)
 # eksctl
 fpath=($fpath ~/.zsh/completion)
 # helm
