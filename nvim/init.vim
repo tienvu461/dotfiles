@@ -3,6 +3,9 @@ call plug#begin('~/.vim/plugged')
 " leave some space in between
 " source explorer
 Plug 'preservim/nerdtree'
+"Not working Plug 'tsony-tsonev/nerdtree-git-plugin'
+Plug 'Xuyuanp/nerdtree-git-plugin'
+Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 
 " code auto complete linting suggestion
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
@@ -109,6 +112,26 @@ let g:NERDTreeDirArrowExpandable = '▸'
 let g:NERDTreeDirArrowCollapsible = '▾'
 let NERDTreeShowHidden=1
 
+let g:NERDTreeGitStatusWithFlags = 1         
+let g:NERDTreeIgnore = ['^node_modules$']
+" sync open file with NERDTree
+" " Check if NERDTree is open or active
+function! IsNERDTreeOpen()        
+  return exists("t:NERDTreeBufName") && (bufwinnr(t:NERDTreeBufName) != -1)
+endfunction
+
+" Call NERDTreeFind iff NERDTree is active, current window contains a modifiable
+" file, and we're not in vimdiff
+function! SyncTree()
+  if &modifiable && IsNERDTreeOpen() && strlen(expand('%')) > 0 && !&diff
+    NERDTreeFind
+    wincmd p
+  endif
+endfunction
+
+" Highlight currently open buffer in NERDTree
+autocmd BufEnter * call SyncTree()
+
 " FZF and Repgrip
 nnoremap <silent> <C-f> :Rg<Cr>
 nnoremap <silent> <C-p> :GFiles<Cr>
@@ -166,6 +189,7 @@ nmap <leader>f  <Plug>(coc-format-selected)
 
 " my custom remap
 nnoremap <silent> <S-t> :tabnew<CR>
+inoremap jk <ESC>
 
 " Auto Commands
 augroup auto_commands
