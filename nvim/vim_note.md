@@ -1,28 +1,28 @@
-- NERDTree
-  Ctrl+ww cycle though all windows
+# 1. - NERDTree
 
-Ctrl+wh takes you left a window
+    1. Windows
 
-Ctrl+wj takes you down a window
+- Ctrl w w - Cycle through all windows
+- Ctrl w h - Window left
+- Ctrl w j - Window below
+- Ctrl w k - Window up
+- Ctrl w l - Window right 2. Tabs
+- gt - Next tab
+- gT - Previous tab 3. Dirs
+- C - change current root dir
+- cd - Show CWD
 
-Ctrl+wk takes you up a window
+# 2. - coc
 
-Ctrl+wl takes you right a window
+# 3 - nvim-comment
 
-gt = next Tab gT = previous Tab
+    1. NORMAL mode
 
-C change current root dir
-cd show CWD
-
-- nvim-comment
-
-NORMAL mode
 `gcc` - Toggles the current line using linewise comment
 `gbc` - Toggles the current line using blockwise comment
 `[count]gcc` - Toggles the number of line given as a prefix-count using linewise
 `[count]gbc` - Toggles the number of line given as a prefix-count using blockwise
 `gc[count]{motion}` - (Op-pending) Toggles the region using linewise comment
-`gb[count]{motion}` - (Op-pending) Toggles the region using blockwise comment
-VISUAL mode
+`gb[count]{motion}` - (Op-pending) Toggles the region using blockwise comment 2. VISUAL mode
 `gc` - Toggles the region using linewise comment
 `gb` - Toggles the region using blockwise comment

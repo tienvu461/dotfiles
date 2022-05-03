@@ -24,5 +24,14 @@
     "typescriptreact",
     "html"
   ],
-  "codeLens.enable": false
+  "codeLens.enable": false,
+  "languageserver": {
+    "terraform": {
+      "command": "terraform-ls",
+      "args": ["serve"],
+      "filetypes": ["terraform", "tf"],
+      "initializationOptions": {},
+      "settings": {}
+    }
+  }
 }
