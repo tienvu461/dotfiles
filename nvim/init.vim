@@ -111,7 +111,7 @@ let NERDTreeShowHidden=1
 
 " FZF and Repgrip
 nnoremap <silent> <C-f> :Rg<Cr>
-nnoremap <silent> <C-p> :GFiles<Cr>
+nnoremap <silent> <C-p> :Files<Cr>
 command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
 let g:fzf_layout = { 'down':  '40%'}
 
@@ -166,6 +166,8 @@ nmap <leader>f  <Plug>(coc-format-selected)
 
 " my custom remap
 nnoremap <silent> <S-t> :tabnew<CR>
+" re-source nvim config
+nnoremap <leader>sv :source $MYVIMRC<cr>
 
 " Auto Commands
 augroup auto_commands
