@@ -12,7 +12,13 @@
 #### Dirs
 - `C` - change current root dir
 - `cd` - Show CWD
-
+#### Split Panes
+- `Ctrl-W -` - Decrease current window height by N (default 1).
+- `Ctrl-W +` - Increase current window height by N (default 1).
+- `Ctrl-W <` - Decrease current window width by N (default 1).
+- `Ctrl-W >` - Increase current window width by N (default 1).
+- `:res +/-N` - Like: :res +10
+- `:vertical res +/-N` - Like: :vertical res +10
 # coc
 - `gd` - Go to definication
 - 
