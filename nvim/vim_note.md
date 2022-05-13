@@ -11,6 +11,7 @@
 - `gT` - Previous tab 
 #### Dirs
 - `C` - change current root dir
+- 
 - `cd` - Show CWD
 #### Split Panes
 - `Ctrl-W -` - Decrease current window height by N (default 1).
