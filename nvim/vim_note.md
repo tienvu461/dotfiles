@@ -35,3 +35,9 @@
 #### VISUAL mode
 - `gc` - Toggles the region using linewise comment
 - `gb` - Toggles the region using blockwise comment
+
+# search & replace
+- `:%s/https:\/\/www.google.com/new/gc`
+- `%` - first line to last line
+- `g` - all occurences
+- `c` - confirm
