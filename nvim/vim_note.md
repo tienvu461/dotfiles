@@ -38,6 +38,11 @@
 
 # search & replace
 - `:%s/https:\/\/www.google.com/new/gc`
-- `%` - first line to last line
-- `g` - all occurences
-- `c` - confirm
+  - `%` - first line to last line
+  - `g` - all occurences
+  - `c` - confirm
+- `:%s/"\(\d*\)"/\1/gc`
+  - `%` - first line to last line
+  - `\(\)` - capture group
+  - `\1` - return group 1
+  - eg: 1,test,"100" -> 1,test,100
