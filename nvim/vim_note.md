@@ -46,8 +46,14 @@
   - `\(\)` - capture group
   - `\1` - return group 1
   - eg: 1,test,"100" -> 1,test,100
+
 # add multiple line at the same time
 - `qq` - start recording
 - `f"ai<text><esc>0j` - go to first occurence doublequote, insert text, go to the beginning of the line and go down
 - `@q` - play 1 time
 - `<n>@q` - play n time
+ 
+# Replace multiple files
+- `:Rg <text>` - search for <text> in CWD
+- `Tab` - select multiple result to quickfix, Enter to open quickfix
+- `:cfdo %s/<text>/<text to replace with>/g | update` - replace all text from selected files by quickfix
