@@ -1,5 +1,5 @@
 - Split pane:
-  - Vertical: <C-Space> =
-  - Horizontal: <C-Space> -
-  - Resize: <C-S-Left/Right/Up/Down>
+  - Vertical: `<C-Space> =`
+  - Horizontal: `<C-Space> -`
+  - Resize: `<C-S-Left/Right/Up/Down>`
 - 
