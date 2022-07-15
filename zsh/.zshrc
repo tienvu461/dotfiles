@@ -2,7 +2,7 @@
 export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH="/Users/vlttvu/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -105,6 +105,15 @@ fi
 alias enc_ssl="openssl enc -aes-256-cbc"
 alias dec_ssl="openssl enc -aes-256-cbc -d"
 
+# get pacman vpn password
+alias pacman_vpn="echo 'i.|/B1[iz.' | pbcopy"
+
+# show export PATH
+alias export_path="echo 'export \$PATH=\$PATH:/usr/bin'"
+
+# open note.txt
+alias note_file="nvim $HOME/TienVu/myWS/10_myScript/notes/note.txt"
+
 # custom settings
 # Show timestamp on right hand side
 RPROMPT="[%D{%f-%m}T%D{%H:%M}]"
@@ -120,15 +129,19 @@ export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
 [[ -r /usr/local/etc/profile.d/bash_completion.sh ]] && . /usr/local/etc/profile.d/bash_completion.sh
 
 export LBC_VERSION="v2.0.0"
-# source <(kubectl completion zsh)
+ source <(kubectl completion zsh)
 # eksctl
 fpath=($fpath ~/.zsh/completion)
 # helm
 source <(helm completion zsh)
 # added by travis gem
-[ ! -s /Users/vlttvu/.travis/travis.sh ] || source /Users/vlttvu/.travis/travis.sh
+[ ! -s $HOME/.travis/travis.sh ] || source $HOME/.travis/travis.sh
 
 # ZVM Zsh Vim Mode
 source /usr/local/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
 export PATH="/usr/local/opt/node@14/bin:$PATH"
+# nvm
+export NVM_DIR="$HOME/.nvm"
+  [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+  [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion

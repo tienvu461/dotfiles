@@ -8,5 +8,5 @@
     lg = !git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30
     ; adog = log --all --decorate --oneline --graph
     adog = log --all --decorate --oneline --graph --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30
-
+    last = show --stat --oneline HEAD^^..HEAD
 

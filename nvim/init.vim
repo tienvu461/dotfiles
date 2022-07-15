@@ -3,13 +3,23 @@ call plug#begin('~/.vim/plugged')
 " leave some space in between
 " source explorer
 Plug 'preservim/nerdtree'
+" extra text objects
+Plug 'wellle/targets.vim'
+Plug 'easymotion/vim-easymotion'
 "Not working Plug 'tsony-tsonev/nerdtree-git-plugin'
 Plug 'Xuyuanp/nerdtree-git-plugin'
 Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 
 " code auto complete linting suggestion
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'neoclide/coc.nvim', {'branch': 'release', 'do': 'yarn install --frozen-lockfile'}
 Plug 'jiangmiao/auto-pairs'
+
+let g:coc_global_extensions = ['coc-tslint-plugin', 'coc-tsserver', 'coc-css', 'coc-html', 'coc-json', 'coc-prettier']  " list of CoC extensions needed
+" these two plugins will add highlighting and indenting to JSX and TSX files.
+Plug 'yuezk/vim-js'
+Plug 'HerringtonDarkholme/yats.vim'
+Plug 'maxmellon/vim-jsx-pretty'
+
 Plug 'hashivim/vim-terraform'
 " post install (yarn install | npm install) then load plugin only for editing supported files
 " Plug 'prettier/vim-prettier', { 'do': 'yarn install --frozen-lockfile --production' }
@@ -19,12 +29,13 @@ Plug 'numToStr/Comment.nvim'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 " Git
-" Plug 'airblade/vim-gitgutter'
+Plug 'airblade/vim-gitgutter'
 Plug 'tpope/vim-fugitive'
 
 " for theme and color and appearance
 Plug 'shaunsingh/nord.nvim'
 Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
 Plug 'ryanoasis/vim-devicons'
 call plug#end()
 lua require('Comment').setup()
@@ -32,7 +43,10 @@ lua require('Comment').setup()
 autocmd!
 
 set nocompatible
-set number
+" absolute line number ON
+"set number
+" hybrid line number ON
+set nu rnu
 set clipboard=unnamedplus
 set cursorline
 syntax enable
@@ -92,7 +106,7 @@ let g:nord_disable_background = v:false
 let g:nord_italic = v:false
 
 "enables Airline for the tab bar and set powerline font
-let g:airline_theme='sobrio'
+let g:airline_theme='lessnoise'
 let g:airline_powerline_fonts = 1
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'unique_tail'
@@ -108,6 +122,7 @@ endif
 
 "Changing default NERDTree arrows
 nnoremap <C-t> :NERDTreeToggle<CR>
+
 let g:NERDTreeDirArrowExpandable = '▸'
 let g:NERDTreeDirArrowCollapsible = '▾'
 let NERDTreeShowHidden=1
@@ -130,7 +145,22 @@ function! SyncTree()
 endfunction
 
 " Highlight currently open buffer in NERDTree
-autocmd BufEnter * call SyncTree()
+autocmd BufRead * call SyncTree()
+
+" Zoom / Restore window.
+function! s:ZoomToggle() abort
+    if exists('t:zoomed') && t:zoomed
+        execute t:zoom_winrestcmd
+        let t:zoomed = 0
+    else
+        let t:zoom_winrestcmd = winrestcmd()
+        resize
+        vertical resize
+        let t:zoomed = 1
+    endif
+endfunction
+command! ZoomToggle call s:ZoomToggle()
+nnoremap <silent> <C-A> :ZoomToggle<CR>
 
 " FZF and Repgrip
 nnoremap <silent> <C-f> :Rg<Cr>
@@ -140,9 +170,9 @@ let g:fzf_layout = { 'down':  '40%'}
 
 " Use <c-space> to trigger completion.
 if has('nvim')
-  inoremap <silent><expr> <c-space> coc#refresh()
+  inoremap <silent><expr> <space-space> coc#refresh()
 else
-  inoremap <silent><expr> <c-@> coc#refresh()
+  inoremap <silent><expr> <o-@> coc#refresh()
 endif
 " Use tab for trigger completion with characters ahead and navigate.
 " NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
@@ -183,6 +213,7 @@ let g:coc_global_extensions = [
   \  'coc-prettier',
   \  'coc-pyright',
   \  'coc-go',
+  \  'coc-phpls',
   \ ]
 command! -nargs=0 Prettier :call CocAction('runCommand', 'prettier.formatFile')
 nmap <leader>f  <Plug>(coc-format-selected)
@@ -198,5 +229,28 @@ augroup auto_commands
 	autocmd BufWrite *.py call CocAction('format')
 	autocmd FileType scss setlocal iskeyword+=@-@
 	autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
+    autocmd BufEnter *.tf* colorscheme nord
 augroup END
 
+
+" For Terraform
+let g:terraform_fmt_on_save=1
+let g:terraform_align=1
+
+" for easymotion
+let g:EasyMotion_do_mapping = 0 " Disable default mappings
+
+" Jump to anywhere you want with minimal keystrokes, with just one key binding.
+" `s{char}{label}`
+nmap s <Plug>(easymotion-overwin-f)
+" or
+" `s{char}{char}{label}`
+" Need one more keystroke, but on average, it may be more comfortable.
+nmap s <Plug>(easymotion-overwin-f2)
+
+" Turn on case-insensitive feature
+let g:EasyMotion_smartcase = 1
+
+" JK motions: Line motions
+map <Leader>j <Plug>(easymotion-j)
+map <Leader>k <Plug>(easymotion-k)

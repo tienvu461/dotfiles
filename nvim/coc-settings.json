@@ -14,6 +14,7 @@
   ],
   "python.formatting.provider": "black",
   "python.formatting.blackPath": "~/.local/bin/black",
+  "python.pythonPath": "/usr/local/bin/python3",
   "prettier.singleQuote": true,
   "javascript.autoClosingTags": true,
   "typescript.autoClosingTags": true,

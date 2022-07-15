@@ -12,14 +12,17 @@ vimplug_url='https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 coc_json="$(pwd)/nvim/coc-settings.json"
 coc_nvim_path="$nvim_path/coc-settings.json"
 
-# # Tmux
-# tmux_file="$(pwd)/terminal/tmux/.tmux.conf"
-# tmux_path="$HOME/.tmux.conf"
+# Tmux
+tmux_file="$(pwd)/tmux/.tmux.conf"
+tmux_path="$HOME/.tmux.conf"
 
 # Git
 git_file="$(pwd)/git/.gitconfig"
 git_path="$HOME/.gitconfig"
 
+# alacritty
+alacritty_file="$(pwd)/alacritty/alacritty.yml"
+alacritty_path="$HOME/.config/alacritty/alacritty.yml"
 # # Fish
 # fish_file="$(pwd)/terminal/fish/config.fish"
 # fish_path="$HOME/.config/fish/config.fish"
@@ -127,6 +130,7 @@ do
       break;;
     '4') 
       createLink $zsh_file $zsh_path 'zsh'
+      cp $(pwd)/zsh/themes/agnoster_newline $HOME/.oh-my-zsh/themes/
       break;;
     '5') 
       configureItalics
