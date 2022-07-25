@@ -1,6 +1,6 @@
 [user]
-    name = vlttvu 
-    email = vlttvu@mediba.jp
+    name = tienvu461 
+    email = tienvu461@gmail.com
 [alias]
     s = status
     ba = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate

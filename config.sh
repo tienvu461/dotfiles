@@ -130,7 +130,7 @@ do
       break;;
     '4') 
       createLink $zsh_file $zsh_path 'zsh'
-      cp $(pwd)/zsh/themes/agnoster_newline $HOME/.oh-my-zsh/themes/
+      cp $(pwd)/zsh/themes/agnoster_newline.zsh-theme $HOME/.oh-my-zsh/themes/
       break;;
     '5') 
       configureItalics

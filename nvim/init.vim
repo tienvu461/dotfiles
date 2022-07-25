@@ -3,6 +3,9 @@ call plug#begin('~/.vim/plugged')
 " leave some space in between
 " source explorer
 Plug 'preservim/nerdtree'
+" tmux
+Plug 'christoomey/vim-tmux-navigator'
+
 " extra text objects
 Plug 'wellle/targets.vim'
 Plug 'easymotion/vim-easymotion'
@@ -48,26 +51,45 @@ set nocompatible
 " hybrid line number ON
 set nu rnu
 set clipboard=unnamedplus
+" highlight current lint
 set cursorline
+:highlight Cursorline cterm=bold ctermbg=black
 syntax enable
 set fileencoding=utf-8
 set title
+" enable mouse support
 set mouse=a
 set splitbelow splitright
 set background=dark
 set nobackup
+" hightlight search result
 set hlsearch
-set showcmd
+set ignorecase
+set smartcase
+
+" Indentation using spaces "
+" tabstop:	width of tab character
+" softtabstop:	fine tunes the amount of whitespace to be added
+" shiftwidth:	determines the amount of whitespace to add in normal mode
+" expandtab:	when on use space instead of tab
+" textwidth:	text wrap width
+" autoindent:	autoindent in new line
+set tabstop     =4
+set softtabstop	=4
+set shiftwidth  =4
 set expandtab
-set shiftwidth=4
-set tabstop=4
-set cmdheight=1
-set laststatus=2
-set scrolloff=10
+set textwidth	=79
+set laststatus  =2
+set scrolloff   =10
+
+" show the matching part of pairs [] {} and () "
+set showmatch
+set showcmd
+" Give more space for displaying messages.
+set cmdheight=2
 " Set internal encoding of vim, not needed on neovim, since coc.nvim using some
 " unicode characters in the file autoload/float.vim
 set encoding=utf-8
-set nu
 set ai
 set ls=2
 set autoindent
@@ -80,9 +102,6 @@ set hidden
 " Some servers have issues with backup files, see #649.
 set nobackup
 set nowritebackup
-
-" Give more space for displaying messages.
-set cmdheight=2
 
 " Having longer updatetime (default is 4000 ms = 4 s) leads to noticeable
 " delays and poor user experience.
@@ -165,7 +184,11 @@ nnoremap <silent> <C-A> :ZoomToggle<CR>
 " FZF and Repgrip
 nnoremap <silent> <C-f> :Rg<Cr>
 nnoremap <silent> <C-p> :Files<Cr>
-command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
+" command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
+command! -bang -nargs=* Rg
+  \ call fzf#vim#grep(
+  \   'rg --column --line-number --no-heading --color=always --smart-case -- '.shellescape(<q-args>), 1,
+  \   fzf#vim#with_preview(), <bang>0)
 let g:fzf_layout = { 'down':  '40%'}
 
 " Use <c-space> to trigger completion.
@@ -254,3 +277,7 @@ let g:EasyMotion_smartcase = 1
 " JK motions: Line motions
 map <Leader>j <Plug>(easymotion-j)
 map <Leader>k <Plug>(easymotion-k)
+
+" tmux
+
+" nnoremap <silent> <C-f> :silent !tmux neww tmux-sessionizer<CR>

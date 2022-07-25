@@ -100,7 +100,7 @@ source $ZSH/oh-my-zsh.sh
 if command -v pyenv 1>/dev/null 2>&1; then
   eval "$(pyenv init -)"
 fi
-
+alias ll="ls -lah"
 # enc_pass settings
 alias enc_ssl="openssl enc -aes-256-cbc"
 alias dec_ssl="openssl enc -aes-256-cbc -d"
@@ -129,19 +129,18 @@ export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
 [[ -r /usr/local/etc/profile.d/bash_completion.sh ]] && . /usr/local/etc/profile.d/bash_completion.sh
 
 export LBC_VERSION="v2.0.0"
- source <(kubectl completion zsh)
+[ -x "$(command -v kubectl)" ] &&  source <(kubectl completion zsh)
 # eksctl
 fpath=($fpath ~/.zsh/completion)
 # helm
-source <(helm completion zsh)
+[ -x "$(command -v helm)" ] &&  source <(helm completion zsh)
 # added by travis gem
 [ ! -s $HOME/.travis/travis.sh ] || source $HOME/.travis/travis.sh
 
 # ZVM Zsh Vim Mode
-source /usr/local/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+# source /usr/local/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
-export PATH="/usr/local/opt/node@14/bin:$PATH"
-# nvm
+
 export NVM_DIR="$HOME/.nvm"
-  [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
-  [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
