@@ -246,6 +246,8 @@ nnoremap <silent> <S-t> :tabnew<CR>
 " re-source nvim config
 nnoremap <leader>sv :source $MYVIMRC<cr>
 inoremap jk <ESC>
+" split vert
+nnoremap <silent> vv <C-w>v 
 
 " Auto Commands
 augroup auto_commands
