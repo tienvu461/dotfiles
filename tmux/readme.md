@@ -11,5 +11,4 @@
 - Split pane:
   - Vertical: `<C-Space> =`
   - Horizontal: `<C-Space> -`
-  - Resize: `<C-S-Left/Right/Up/Down>`
-- 
+  - Resize: `<C-Space-Hold Alt-Left/Right/Up/Down>`
