@@ -1,15 +1,12 @@
 - Common:
-
-`<ctrl><space>w` - list all tmux sessions and windows
-`<ctrl><space>d` - detach from tmux to terminal prompt
-`<ctrl><space>r` - reload tmux from configuration file
-`tmux kill-session` - kill the current tmux session that you are in
-`tmux kill-server` - kill the tmux server (kills all open sessions)
-`tmux attach-session -t blog` - attach to an existing tmux session
-`tmux ls` - list all tmux
-`<ctrl><space>+` - create a new horizontal split
-`<ctrl><space>-` - create a new vertical split
-`<ctrl><space>?` - list help commands
+  - list all tmux sessions and windows: `<ctrl><space>w` 
+  - detach from tmux to terminal prompt: `<ctrl><space>d` 
+  - reload tmux from configuration file: `<ctrl><space>r`
+  - kill the current tmux session that you are in: `tmux kill-session`
+  - kill the tmux server (kills all open sessions): `tmux kill-server`
+  - attach to an existing tmux session: `tmux attach-session -t blog`
+  - list all tmux: `tmux ls`
+  - list help commands: `<ctrl><space>?`
 
 - Split pane:
   - Vertical: `<C-Space> =`
