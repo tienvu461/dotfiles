@@ -11,4 +11,4 @@ sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.
 ## How to use
 
 - Clone this repo
-- Run `sh ./configure.sh` and select an option
+- Run `sh ./config.sh` and select an option
