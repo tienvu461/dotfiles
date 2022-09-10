@@ -121,9 +121,9 @@ font:
     # family: Source Code Pro
     # family: CodeNewRoman Nerd Font
     # family: RobotoMono Nerd Font
-    family: Hack Nerd Font Mono
+    # family: Hack Nerd Font Mono
     # family: JetBrains Mono
-    # family: UbuntuMono Nerd Font
+    family: UbuntuMono Nerd Font
     # family: Monofur Nerd Font
     # family: TerminessTTF Nerd Font
     # family: Mononoki Nerd Font
@@ -140,10 +140,10 @@ font:
     # family: Source Code Pro
     # family: CodeNewRoman Nerd Font
     # family: RobotoMono Nerd Font
-    family: Hack Nerd Font Mono
+    # family: Hack Nerd Font Mono
     # family: JetBrains Mono
     # family: UbuntuMono Nerd Font
-    # family: Monofur Nerd Font
+    family: Monofur Nerd Font
     # family: TerminessTTF Nerd Font
     # family: Mononoki Nerd Font
 
@@ -159,9 +159,9 @@ font:
     # family: Source Code Pro
     # family: CodeNewRoman Nerd Font
     # family: RobotoMono Nerd Font
-    family: Hack Nerd Font Mono
+    # family: Hack Nerd Font Mono
     # family: JetBrains Mono
-    # family: UbuntuMono Nerd Font
+    family: UbuntuMono Nerd Font
     # family: Monofuritalic Nerd Font Mono
     # family: TerminessTTF Nerd Font
     # family: Mononoki Nerd Font
@@ -178,9 +178,9 @@ font:
     # family: Source Code Pro
     # family: CodeNewRoman Nerd Font
     # family: RobotoMono Nerd Font
-    family: Hack Nerd Font Mono
+    # family: Hack Nerd Font Mono
     # family: JetBrains Mono
-    # family: UbuntuMono Nerd Font
+    family: UbuntuMono Nerd Font
     # family: Monofuritalic Nerd Font Mono
     # family: TerminessTTF Nerd Font
     # family: Mononoki Nerd Font
@@ -648,7 +648,7 @@ colors: *OceanicNext
 #   - (Linux/BSD) user login shell
 #   - (Windows) powershell
 shell:
- program: /usr/local/bin/zsh
+ program: /usr/bin/zsh
  # args:
    # - --login
 
