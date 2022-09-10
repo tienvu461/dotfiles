@@ -8,7 +8,8 @@ export ZSH="$HOME/.oh-my-zsh"
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="agnoster_newline"
+# ZSH_THEME="agnoster_newline"
+ZSH_THEME="miloshadzic"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -117,12 +118,15 @@ alias note_file="nvim $HOME/TienVu/myWS/10_myScript/notes/note.txt"
 
 # custom settings
 # Show timestamp on right hand side
-RPROMPT="[%D{%f-%m}T%D{%H:%M}]"
+# RPROMPT="[%D{%f-%m}T%D{%H:%M}]"
 
 # aws settings
 # Enable auto completion
 autoload bashcompinit && bashcompinit
 complete -C '/usr/local/bin/aws_completer' aws
+# gcp settings
+# gcloud autocompletion
+source /usr/share/google-cloud-sdk/completion.zsh.inc
 
 # kubectl settings
 
