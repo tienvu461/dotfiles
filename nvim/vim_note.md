@@ -35,6 +35,14 @@
 #### VISUAL mode
 - `gc` - Toggles the region using linewise comment
 - `gb` - Toggles the region using blockwise comment
+# git
+#### Viewing diff and blame with git-messenger
+- `Spacegm` - open git diff popup
+- `o` - previous commit
+- `O` - next commit
+- `d` - toggle diff only current file
+- `D` - toggle diff all files in 2 commits
+
 
 # search & replace
 - `:%s/https:\/\/www.google.com/new/gc`
@@ -50,6 +58,7 @@
 # add multiple line at the same time
 - `qq` - start recording
 - `f"ai<text><esc>0j` - go to first occurence doublequote, insert text, go to the beginning of the line and go down
+- press q while in normal mode to stop recording
 - `@q` - play 1 time
 - `<n>@q` - play n time
  
