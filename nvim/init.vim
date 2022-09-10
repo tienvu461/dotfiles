@@ -23,6 +23,9 @@ Plug 'yuezk/vim-js'
 Plug 'HerringtonDarkholme/yats.vim'
 Plug 'maxmellon/vim-jsx-pretty'
 
+" hightlighting *.tpl
+Plug 'mustache/vim-mustache-handlebars'
+
 Plug 'hashivim/vim-terraform'
 " post install (yarn install | npm install) then load plugin only for editing supported files
 " Plug 'prettier/vim-prettier', { 'do': 'yarn install --frozen-lockfile --production' }
@@ -34,6 +37,7 @@ Plug 'junegunn/fzf.vim'
 " Git
 Plug 'airblade/vim-gitgutter'
 Plug 'tpope/vim-fugitive'
+Plug 'rhysd/git-messenger.vim'
 
 " for theme and color and appearance
 Plug 'shaunsingh/nord.nvim'
@@ -108,6 +112,11 @@ set nowritebackup
 set updatetime=300
 let g:gitgutter_max_signs = 2000
 
+" beautify gitMessager popup window
+let g:git_messenger_floating_win_opts = { 'border': 'single' }
+let g:git_messenger_popup_content_margins = v:false
+let g:git_messenger_include_diff = "current"
+let g:git_messenger_always_into_popup = v:true
 
 " Don't pass messages to |ins-completion-menu|.
 set shortmess+=c
@@ -127,6 +136,7 @@ let g:nord_italic = v:false
 "enables Airline for the tab bar and set powerline font
 let g:airline_theme='lessnoise'
 let g:airline_powerline_fonts = 1
+let g:airline_section_b=''
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'unique_tail'
 
@@ -165,6 +175,8 @@ endfunction
 
 " Highlight currently open buffer in NERDTree
 autocmd BufRead * call SyncTree()
+" find current open file in nerdtree
+map <leader>r :NERDTreeFind<cr>
 
 " Zoom / Restore window.
 function! s:ZoomToggle() abort
@@ -188,7 +200,7 @@ nnoremap <silent> <C-p> :Files<Cr>
 command! -bang -nargs=* Rg
   \ call fzf#vim#grep(
   \   'rg --column --line-number --no-heading --color=always --smart-case -- '.shellescape(<q-args>), 1,
-  \   fzf#vim#with_preview(), <bang>0)
+  \   fzf#vim#with_preview({'options': '--delimiter : --nth 4..'}), <bang>0)
 let g:fzf_layout = { 'down':  '40%'}
 
 " Use <c-space> to trigger completion.

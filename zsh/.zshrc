@@ -115,6 +115,26 @@ alias export_path="echo 'export \$PATH=\$PATH:/usr/bin'"
 # open note.txt
 alias note_file="nvim $HOME/TienVu/myWS/10_myScript/notes/note.txt"
 
+# assume-role aws
+# make sure pecu, assume-role were installed
+function aws_set() {
+    BASTION=$1
+    AWS_PROFILE=$(grep -iE "\[*\]" ~/.aws/credentials | tr -d "[]" | peco)
+    # assume-role $BASTION $AWS_PROFILE
+    if ! command -v decrypt.key.sh &> /dev/null
+    then
+        eval $(assume-role $AWS_PROFILE)
+    else
+        eval $(decrypt.key.sh $BASTION | assume-role $AWS_PROFILE)
+    fi
+}
+
+# ssh quick select
+# make sure pecu was installed
+# function ssh_start() {
+#     REMOTE=$(grep )
+# }
+
 # custom settings
 # Show timestamp on right hand side
 RPROMPT="[%D{%f-%m}T%D{%H:%M}]"
