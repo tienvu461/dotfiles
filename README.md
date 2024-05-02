@@ -49,6 +49,10 @@ curl -LO https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Ubuntu
 unzip -d Ubuntu.zip ~/.fonts
 fc-cache -fv
 
+## Install tmux
+
+apt install tmux
+
 ## Install node with nvm
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
