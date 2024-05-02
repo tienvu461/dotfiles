@@ -1,8 +1,10 @@
 - Common:
-  - List all tmux sessions and windows: `<ctrl><space>w` 
-  - Detach from tmux to terminal prompt: `<ctrl><space>d` 
+
+  - List all tmux sessions and windows: `<ctrl><space>w`
+  - Detach from tmux to terminal prompt: `<ctrl><space>d`
   - Reload tmux from configuration file: `<ctrl><space>r`
   - Entering vi mode: `<ctrl><space><escape>`
+  - Exiting vi mode: `<enter>`
   - Kill the current tmux session that you are in: `tmux kill-session`
   - Kill the tmux server (kills all open sessions): `tmux kill-server`
   - Kttach to an existing tmux session: `tmux attach-session -t blog`
