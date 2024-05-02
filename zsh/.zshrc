@@ -87,7 +87,10 @@ source $ZSH/oh-my-zsh.sh
 #   export EDITOR='mvim'
 # fi
 
-export EDITOR=vim
+export EDITOR=nvim
+# nvim setup
+export PATH=$PATH:/opt/nvim-linux64/bin
+alias vi=nvim
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
 
@@ -146,7 +149,7 @@ autoload bashcompinit && bashcompinit
 complete -C '/usr/local/bin/aws_completer' aws
 # gcp settings
 # gcloud autocompletion
-source /usr/share/google-cloud-sdk/completion.zsh.inc
+# source /usr/share/google-cloud-sdk/completion.zsh.inc
 
 # kubectl settings
 
@@ -169,3 +172,6 @@ fpath=($fpath ~/.zsh/completion)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# Terraform
+export PATH="$HOME/.tfenv/bin:$PATH"

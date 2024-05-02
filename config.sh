@@ -21,8 +21,8 @@ git_file="$(pwd)/git/.gitconfig"
 git_path="$HOME/.gitconfig"
 
 # alacritty
-alacritty_file="$(pwd)/alacritty/alacritty.yml"
-alacritty_path="$HOME/.config/alacritty/alacritty.yml"
+alacritty_file="$(pwd)/alacritty/alacritty.toml"
+alacritty_path="$HOME/.config/alacritty/alacritty.toml"
 # # Fish
 # fish_file="$(pwd)/terminal/fish/config.fish"
 # fish_path="$HOME/.config/fish/config.fish"
