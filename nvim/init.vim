@@ -15,7 +15,8 @@ Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 
 " code auto complete linting suggestion
 Plug 'neoclide/coc.nvim', {'branch': 'release', 'do': 'yarn install --frozen-lockfile'}
-Plug 'jiangmiao/auto-pairs'
+" conflicting with coc
+" Plug 'jiangmiao/auto-pairs'
 
 let g:coc_global_extensions = ['coc-tslint-plugin', 'coc-tsserver', 'coc-css', 'coc-html', 'coc-json', 'coc-prettier']  " list of CoC extensions needed
 " these two plugins will add highlighting and indenting to JSX and TSX files.
@@ -238,6 +239,15 @@ nnoremap <silent> <space>s :<C-u>CocList -I symbols<cr>
 nnoremap <silent> <space>d :<C-u>CocList diagnostics<cr>
 nmap <leader>do <Plug>(coc-codeaction)
 nmap <leader>rn <Plug>(coc-rename)
+
+" Brackets autoclose vanilla
+inoremap " ""<left>
+inoremap ' ''<left>
+inoremap ( ()<left>
+inoremap [ []<left>
+inoremap { {}<left>
+inoremap {<CR> {<CR>}<ESC>O
+inoremap {;<CR> {<CR>};<ESC>O
 
 " add language for autocompletion here
 let g:coc_global_extensions = [
