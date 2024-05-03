@@ -158,7 +158,8 @@ export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
 
 export LBC_VERSION="v2.0.0"
 [ -x "$(command -v kubectl)" ] &&  source <(kubectl completion zsh)
-alias k='kubectl'
+#alias k='kubectl'
+alias k="kubectl --insecure-skip-tls-verify  --kubeconfig ~/workspace/01_powertech/kube/tienvv.conf"
 alias klf='kubectl logs --tail=200  -f'
 alias kgs='kubectl get service -o wide'
 alias kgd='kubectl get deployment -o wide'
@@ -177,12 +178,12 @@ alias kdf='kubectl delete -f'
 alias kaf='kubectl apply -f'
 alias kci='kubectl cluster-info'
 alias uil='kubectl get nodes --no-headers | awk '\''{print $1}'\'' | xargs -I {} sh -c '\''echo {} ; kubectl describe node {} | grep Allocated -A 5 | grep -ve Event -ve Allocated -ve percent -ve -- ; echo '\'''
-alias kgc='kc config get-contexts'
-alias kuc='kc config use-context'
-alias kscn='kc config set-context --current --namespace="$1"'
-alias kdn='kc describe no'
-alias kgn='kc get no'
-alias kd='kc describe'
+alias kgc='k config get-contexts'
+alias kuc='k config use-context'
+alias kscn='k config set-context --current --namespace="$1"'
+alias kdn='k describe no'
+alias kgn='k get no'
+alias kd='k describe'
 # eksctl
 fpath=($fpath ~/.zsh/completion)
 # helm
