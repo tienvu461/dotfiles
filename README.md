@@ -50,8 +50,15 @@ unzip -d Ubuntu.zip ~/.fonts
 fc-cache -fv
 
 ## Install tmux
-
 apt install tmux
+### Install tpm 
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+### Installing plugins
+Add new plugin to ~/.tmux.conf with set -g @plugin '...'
+Press prefix + I (capital i, as in Install) to fetch the plugin.
+### Uninstalling plugins
+Remove (or comment out) plugin from the list.
+Press prefix + alt + u (lowercase u as in uninstall) to remove the plugin.
 
 ## Install node with nvm
 

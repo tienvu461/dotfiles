@@ -15,3 +15,6 @@
   - Vertical: `<C-Space> =`
   - Horizontal: `<C-Space> -`
   - Resize: `<C-Space-Hold Alt-Left/Right/Up/Down>`
+  - Maximize: `<C-Space> z`
+  - Swap pane: `<C-Space> {/}`
+  - Show pane num: `<C-Space> q`

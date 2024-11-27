@@ -8,13 +8,9 @@
     "json",
     "javascript",
     "javascriptreact",
-    "typescript",
-    "typescriptreact",
-    "python"
+    "terraform"
   ],
-  "python.formatting.provider": "black",
-  "python.formatting.blackPath": "~/.local/bin/black",
-  "python.pythonPath": "/usr/local/bin/python3",
+  "coc.preferences.formatOnSave": true,
   "prettier.singleQuote": true,
   "javascript.autoClosingTags": true,
   "typescript.autoClosingTags": true,
@@ -30,7 +26,7 @@
     "terraform": {
       "command": "terraform-ls",
       "args": ["serve"],
-      "filetypes": ["terraform", "tf"],
+      "filetypes": ["terraform", "tf", "hcl"],
       "initializationOptions": {},
       "settings": {}
     }

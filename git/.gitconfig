@@ -1,7 +1,7 @@
 [pager]
    branch = false
 [core]
-    editor = vim
+    editor = nvim
 [user]
     name = tienvu461 
     email = tienvu461@gmail.com

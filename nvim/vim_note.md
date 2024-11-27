@@ -13,6 +13,12 @@
 
 - `gt` - Next tab
 - `gT` - Previous tab
+- `:tabm -1` - rearrange current tab to the left 1 tab
+
+#### Buffers
+
+- `<space> b` - Next buffer
+- `<space> B` - All Buffers
 
 #### Dirs
 
@@ -22,12 +28,20 @@
 
 #### Split Panes
 
+- `Ctrl-W v` or `vv` - Split vertical
+- `Ctrl-W s` - Split horizontal
+
 - `Ctrl-W -` - Decrease current window height by N (default 1).
 - `Ctrl-W +` - Increase current window height by N (default 1).
 - `Ctrl-W <` - Decrease current window width by N (default 1).
 - `Ctrl-W >` - Increase current window width by N (default 1).
 - `:res +/-N` - Like: :res +10
 - `:vertical res +/-N` - Like: :vertical res +10
+
+#### Visibility
+
+- `Ctrl-a` - fullscreen current pane
+- `Ctrl-+` | `Ctrl--` - increase|decrease text size
 
 # coc
 

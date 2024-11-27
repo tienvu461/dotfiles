@@ -122,7 +122,10 @@ do
       createLink $nvim_folder/colors/ $nvim_path/colors 'nvim' 'show'
       createLink $coc_json $coc_nvim_path 'nvim' 'show'
       break;;
-    '2') 
+    '2')
+      if [[ ! -d ~/.tmux/plugins/tpm ]]; then
+        git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+      fi
       createLink $tmux_file $tmux_path 'tmux'
       break;;
     '3') 

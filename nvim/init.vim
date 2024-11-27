@@ -19,6 +19,9 @@ Plug 'neoclide/coc.nvim', {'branch': 'release', 'do': 'yarn install --frozen-loc
 " Plug 'jiangmiao/auto-pairs'
 
 let g:coc_global_extensions = ['coc-tslint-plugin', 'coc-tsserver', 'coc-css', 'coc-html', 'coc-json', 'coc-prettier']  " list of CoC extensions needed
+
+" GIthub Copilot
+" Plug 'github/copilot.vim'
 " these two plugins will add highlighting and indenting to JSX and TSX files.
 Plug 'yuezk/vim-js'
 Plug 'HerringtonDarkholme/yats.vim'
@@ -42,6 +45,7 @@ Plug 'rhysd/git-messenger.vim'
 
 " for theme and color and appearance
 Plug 'shaunsingh/nord.nvim'
+Plug 'rebelot/kanagawa.nvim'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'ryanoasis/vim-devicons'
@@ -128,18 +132,20 @@ if exists('+termguicolors')
 endif
 
 "setting color and theme:
-colorscheme nord
+colorscheme kanagawa
 let g:nord_contrast = v:true
 let g:nord_borders = v:true
 let g:nord_disable_background = v:false
 let g:nord_italic = v:false
 
 "enables Airline for the tab bar and set powerline font
-let g:airline_theme='lessnoise'
+let g:airline_theme='molokai'
 let g:airline_powerline_fonts = 1
 let g:airline_section_b=''
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'unique_tail'
+
+set guifont=Hack\ Nerd\ Font:h10
 
 " Always show the signcolumn, otherwise it would shift the text each time
 " diagnostics appear/become resolved.
@@ -205,29 +211,35 @@ command! -bang -nargs=* Rg
 let g:fzf_layout = { 'down':  '40%'}
 
 " Use <c-space> to trigger completion.
+let g:coc_node_path = '$HOME/.nvm/versions/node/v22.11.0/bin/node'
 if has('nvim')
   inoremap <silent><expr> <space-space> coc#refresh()
 else
   inoremap <silent><expr> <o-@> coc#refresh()
 endif
-" Use tab for trigger completion with characters ahead and navigate.
-" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
-" other plugin before putting this into your config.
-inoremap <silent><expr> <TAB>
-      \ pumvisible() ? "\<C-n>" :
-      \ <SID>check_back_space() ? "\<TAB>" :
-      \ coc#refresh()
-inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
 
-function! s:check_back_space() abort
+" https://github.com/neoclide/coc.nvim/issues/3167
+" Use tab for trigger completion with characters ahead and navigate
+" NOTE: There's always complete item selected by default, you may want to enable
+" no select by `"suggest.noselect": true` in your configuration file
+" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
+" other plugin before putting this into your config
+inoremap <silent><expr> <TAB>
+      \ coc#pum#visible() ? coc#pum#next(1) :
+      \ CheckBackspace() ? "\<Tab>" :
+      \ coc#refresh()
+
+inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+
+" Make <CR> to accept selected completion item or notify coc.nvim to format
+" <C-g>u breaks current undo, please make your own choice
+inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+function! CheckBackspace() abort
   let col = col('.') - 1
   return !col || getline('.')[col - 1]  =~# '\s'
 endfunction
-
-" Make <CR> auto-select the first completion item and notify coc.nvim to
-" format on enter, <cr> could be remapped by other vim plugin
-inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
-                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gy <Plug>(coc-type-definition)
@@ -256,15 +268,18 @@ let g:coc_global_extensions = [
   \ 'coc-css',
   \  'coc-eslint',
   \  'coc-prettier',
-  \  'coc-pyright',
   \  'coc-go',
   \  'coc-phpls',
   \ ]
 command! -nargs=0 Prettier :call CocAction('runCommand', 'prettier.formatFile')
-nmap <leader>f  <Plug>(coc-format-selected)
+" command! ZoomToggle call s:ZoomToggle()
+nnoremap <leader>ff :call CocAction('runCommand', 'prettier.formatFile')<CR>
+"nmap <leader>f  <Plug>(coc-format-selected)
 
 " my custom remap
 nnoremap <silent> <S-t> :tabnew<CR>
+nmap <leader>b :b#<cr>
+nmap <leader>B :Buffers<cr>
 " re-source nvim config
 nnoremap <leader>sv :source $MYVIMRC<cr>
 inoremap jk <ESC>
@@ -276,7 +291,7 @@ augroup auto_commands
 	autocmd BufWrite *.py call CocAction('format')
 	autocmd FileType scss setlocal iskeyword+=@-@
 	autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
-    autocmd BufEnter *.tf* colorscheme nord
+    autocmd BufEnter *.tf* colorscheme kanagawa
 augroup END
 
 

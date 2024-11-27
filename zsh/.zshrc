@@ -69,7 +69,7 @@ ZSH_THEME="miloshadzic"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git git-flow brew history node npm)
+plugins=(aws git git-flow brew history node npm)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -91,8 +91,27 @@ export EDITOR=nvim
 # nvim setup
 export PATH=$PATH:/opt/nvim-linux64/bin
 alias vi=nvim
+# using fzf in CTRL-R
+# source <(fzf --zsh) # for fzf > 0.48
+source /usr/share/doc/fzf/examples/key-bindings.zsh
+source /usr/share/doc/fzf/examples/completion.zsh
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
+tmss () {
+    # WORK_DIR="~/workspace/02_keypay/configuration-management"
+    # SESSION="configuration-management"
+    WORK_DIR=$1
+    SESSION=$2
+
+    tmux kill-session -t $SESSION
+    tmux new-session -d -s $SESSION -c $WORK_DIR
+    tmux split-window -t $SESSION:1.1 -hl 1
+    tmux split-window -t $SESSION:1.2 -vl 1
+    tmux send-keys -t $SESSION:1.1 "nvim ." Enter
+    tmux send-keys -t $SESSION:1.2 "cd $WORK_DIR" Enter
+    tmux send-keys -t $SESSION:1.3 "cd $WORK_DIR && ll && git s" Enter
+    tmux attach-session -t $SESSION
+}
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -117,7 +136,15 @@ alias pacman_vpn="echo 'i.|/B1[iz.' | pbcopy"
 alias export_path="echo 'export \$PATH=\$PATH:/usr/bin'"
 
 # open note.txt
-alias note_file="nvim $HOME/TienVu/myWS/10_myScript/notes/note.txt"
+alias note_file="nvim $HOME/workspace/note.txt"
+alias awswho="aws sts get-caller-identity"
+export AWS_PAGER=""
+#alias awssso="aws sso login --profile "
+awssso() {
+    aws sso login --profile $1
+    export AWS_PROFILE=$1
+}
+
 
 # assume-role aws
 # make sure pecu, assume-role were installed
@@ -201,3 +228,59 @@ export NVM_DIR="$HOME/.nvm"
 
 # Terraform
 export PATH="$HOME/.tfenv/bin:$PATH"
+complete -o nospace -C /usr/local/bin/terragrunt terragrunt
+
+# GO
+# GOPATH=$HOME/go
+GOPATH=/usr/local/bin/go
+PATH=$GOPATH/bin:$PATH
+
+
+# RPROMPT for date & aws profile
+strlen () {
+    FOO=$1
+    local zero='%([BSUbfksu]|([FB]|){*})'
+    LEN=${#${(S%%)FOO//$~zero/}}
+    echo $LEN
+}
+
+# show right prompt with date ONLY when command is executed
+preexec () {
+    DATE=$( date +"[%Y%m%dT%H%M%S]" )
+    local len_right=$( strlen "$DATE" )
+    len_right=$(( $len_right+1 ))
+    local right_start=$(($COLUMNS - $len_right))
+
+    local len_cmd=$( strlen "$@" )
+    local len_prompt=$(strlen "$PROMPT" )
+    local len_left=$(($len_cmd+$len_prompt))
+
+    RDATE="\n\033[${right_start}C ${DATE}"
+
+    if [ $len_left -lt $right_start ]; then
+        # command does not overwrite right prompt
+        # ok to move up one line
+        echo -e "\033[1A${RDATE}"
+    else
+        echo -e "${RDATE}"
+    fi
+
+}
+
+# add Pulumi to the PATH
+# export PATH=$PATH:/home/tienvv-eh/.pulumi/bin
+
+
+# WSL2 specific setups
+if [[ $WSL_DISTRO_NAME == "Ubuntu" ]]; then
+    export BROWSER=/usr/bin/wslview
+#if [[ $- == *i* ]]; then
+#  if [[ -z "$SCRIPT_RUNNING" ]]; then
+#    export SCRIPT_RUNNING=1
+#    script -a $HOME/workspace/90_bash_logs/$( date +"%Y%m%dT%H%M%S" )-$WT_SESSION.log
+#    exit
+#  fi
+#fi
+fi
+
+autoload -U +X bashcompinit && bashcompinit
