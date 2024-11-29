@@ -22,6 +22,9 @@
     "html"
   ],
   "codeLens.enable": false,
+  "go.goplsOptions": {
+    "completeUnimported": true
+  },
   "languageserver": {
     "terraform": {
       "command": "terraform-ls",

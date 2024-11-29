@@ -286,12 +286,26 @@ inoremap jk <ESC>
 " split vert
 nnoremap <silent> vv <C-w>v 
 
+function! GoFmt()
+  let saved_view = winsaveview()
+  silent %!gofmt
+  if v:shell_error > 0
+    cexpr getline(1, '$')->map({ idx, val -> val->substitute('<standard input>', expand('%'), '') })
+    silent undo
+    cwindow
+  endif
+  call winrestview(saved_view)
+endfunction
+
+command! GoFmt call GoFmt()
+
 " Auto Commands
 augroup auto_commands
 	autocmd BufWrite *.py call CocAction('format')
+    autocmd BufWritePre *.go GoFmt
 	autocmd FileType scss setlocal iskeyword+=@-@
-	autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
-    autocmd BufEnter *.tf* colorscheme kanagawa
+	" autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
+    " autocmd BufEnter *.tf* colorscheme kanagawa
 augroup END
 
 
