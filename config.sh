@@ -34,6 +34,10 @@ alacritty_path="$HOME/.config/alacritty/alacritty.toml"
 zsh_file="$(pwd)/zsh/.zshrc"
 zsh_path="$HOME/.zshrc"
 
+# custom scripts
+scripts_path="$(pwd)/scripts/"
+local_scripts_path="$HOME/.local/scripts"
+
 # Colors and formatting
 b="$(tput bold)"
 d='\033[2m' 
@@ -102,7 +106,7 @@ echo -e " ${y}6)${n} Configure ${b}Alacritty${n}"
 echo -e " ${y}7)${n} Configure ${b}Kitty${n}"
 echo -e " ${y}8)${n} Install ${b}Vim Plug${n}"
 echo -e " ${y}9)${n} Configure ${b}i3${n}"
-echo -e " ${y}10)${n} Configure ${b}Sway${n} and ${b}Waybar${n}"
+echo -e " ${y}10)${n} Configure ${b}Custom scripts${n}"
 echo -e "$d-------------------------------------------------------$n"
 
 # Input option
@@ -151,8 +155,8 @@ do
       createLink $i3_files $i3_path 'i3'
       break;;
     '10')
-      createLink $sway_files $sway_path 'sway'
-      createLink $waybar_files $sway_path 'waybar'
+      # mkdir -p $local_scripts_path
+      createLink $scripts_path $local_scripts_path 'script' 'show'
       break;;
     *)
       echo " Good luck."

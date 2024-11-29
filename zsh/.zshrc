@@ -1,5 +1,5 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin::/usr/local/go/bin:$PATH
+export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -231,9 +231,8 @@ export PATH="$HOME/.tfenv/bin:$PATH"
 complete -o nospace -C /usr/local/bin/terragrunt terragrunt
 
 # GO
-# GOPATH=$HOME/go
-GOPATH=/usr/local/bin/go
-PATH=$GOPATH/bin:$PATH
+GOPATH=$HOME/go
+PATH=/usr/local/go/bin:$GOPATH/bin:$PATH
 
 
 # RPROMPT for date & aws profile
@@ -282,5 +281,6 @@ if [[ $WSL_DISTRO_NAME == "Ubuntu" ]]; then
 #  fi
 #fi
 fi
-
+# custom scripts
+PATH=$HOME/.local/scripts:$PATH
 autoload -U +X bashcompinit && bashcompinit
