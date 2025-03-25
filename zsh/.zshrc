@@ -221,6 +221,10 @@ fpath=($fpath ~/.zsh/completion)
 # ZVM Zsh Vim Mode
 # source /usr/local/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
+# git alias
+alias g="git"
+alias gp="git push"
+alias ga="git add"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
