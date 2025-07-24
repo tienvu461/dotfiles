@@ -1,0 +1,77 @@
+{
+  "security.allowedUNCHosts": ["wsl.localhost"],
+  "workbench.colorTheme": "Deep Blue",
+  "files.associations": {
+    "**/templates/*.tsx": "typescriptreact",
+    "**/templates/*.html": "django-html",
+    "**/templates/**/*.html": "django-html",
+    "**/templates/*": "django-txt",
+    "**/requirements{/**,*}.{txt,in}": "pip-requirements",
+    "*.html": "html"
+  },
+  "emmet.includeLanguages": {
+    "django-html": "html"
+  },
+  "[terraform]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.tabSize": 2, // optionally
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": true,
+      "strings": true
+    }
+  },
+  "[terraform-vars]": {
+    "editor.tabSize": 2 // optionally
+  },
+  "[django-html]": {
+    "editor.defaultFormatter": "monosans.djlint",
+    "editor.formatOnSave": true,
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": true,
+      "strings": true
+    }
+  },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.autopep8",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.formatOnSave": false
+  },
+  "[yaml]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "explorer.confirmDragAndDrop": false,
+  "explorer.confirmPasteNative": false,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "yaml.completion": true,
+  "yaml.format.enable": true,
+  "yaml.schemaStore.enable": false,
+  "yaml.schemas": {
+    "https://www.schemastore.org/github-workflow.json": "*/**/.github/workflows/*.yaml"
+  },
+  "diffEditor.codeLens": true,
+  "redhat.telemetry.enabled": false,
+  "docker.extension.enableComposeLanguageServer": false,
+  "files.trimTrailingWhitespace": true,
+  "security.workspace.trust.untrustedFiles": "open",
+  "files.eol": "\n",
+  "editor.formatOnSave": true,
+  "files.trimFinalNewlines": true,
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "git.suggestSmartCommit": false,
+  "git.blame.editorDecoration.enabled": true,
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  },
+  "git.confirmSync": false
+}
