@@ -19,8 +19,14 @@ sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.
 ## Install ZSH & oh-my-zsh themes
 
 ###
+#### Linux
 ```
 sudo apt install zsh
+```
+
+#### MacOS
+```
+brew install zsh
 ```
 ### install oh-my-zsh
 ```
@@ -72,10 +78,15 @@ nvm install 16
 ### Development
 
 ### aws cli
+#### Linux
 ```
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip -q awscliv2.zip
 sudo ./aws/install
+```
+#### MacOS
+```
+brew install awscli
 ```
 ### assume-role
 ```
@@ -91,7 +102,10 @@ git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
 echo 'export PATH="$HOME/.tfenv/bin:$PATH"' >> ~/.zshrc
 ```
 ### go
+#### Linux
 ```
 curl -LO https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
 ```
+#### MacOS
+https://go.dev/dl/
