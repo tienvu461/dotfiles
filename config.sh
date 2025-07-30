@@ -122,6 +122,7 @@ do
       createLink $coc_json $coc_vim_path 'vim' 'show'
       break;;
     '1')
+      mkdir -p $nvim_path
       createLink $nvim_folder/init.vim "$nvim_path/init.vim" 'nvim' 
       createLink $nvim_folder/colors/ $nvim_path/colors 'nvim' 'show'
       createLink $coc_json $coc_nvim_path 'nvim' 'show'

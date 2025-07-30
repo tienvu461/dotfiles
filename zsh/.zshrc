@@ -89,12 +89,12 @@ source $ZSH/oh-my-zsh.sh
 
 export EDITOR=nvim
 # nvim setup
-export PATH=$PATH:/opt/nvim-linux64/bin
+export PATH=$PATH:/opt/nvim-linux-x86_64/bin
 alias vi=nvim
 # using fzf in CTRL-R
 # source <(fzf --zsh) # for fzf > 0.48
-source /usr/share/doc/fzf/examples/key-bindings.zsh
-source /usr/share/doc/fzf/examples/completion.zsh
+# source /usr/share/doc/fzf/examples/key-bindings.zsh
+# source /usr/share/doc/fzf/examples/completion.zsh
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
 tmss () {
@@ -249,6 +249,10 @@ strlen () {
 
 # show right prompt with date ONLY when command is executed
 preexec () {
+    # skip preexec for commands with command substitution $(...)
+    if [[ "$1" == *'$('* ]] then
+        return
+    fi
     DATE=$( date +"[%Y%m%dT%H%M%S]" )
     local len_right=$( strlen "$DATE" )
     len_right=$(( $len_right+1 ))
