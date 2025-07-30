@@ -211,7 +211,7 @@ command! -bang -nargs=* Rg
 let g:fzf_layout = { 'down':  '40%'}
 
 " Use <c-space> to trigger completion.
-let g:coc_node_path = '$HOME/.nvm/versions/node/v22.11.0/bin/node'
+let g:coc_node_path = '$HOME/.nvm/versions/node/v22.14.0/bin/node'
 if has('nvim')
   inoremap <silent><expr> <space-space> coc#refresh()
 else
@@ -300,13 +300,13 @@ endfunction
 command! GoFmt call GoFmt()
 
 " Auto Commands
-augroup auto_commands
-	autocmd BufWrite *.py call CocAction('format')
-    autocmd BufWritePre *.go GoFmt
-	autocmd FileType scss setlocal iskeyword+=@-@
-	" autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
-    " autocmd BufEnter *.tf* colorscheme kanagawa
-augroup END
+" augroup auto_commands
+" 	autocmd BufWrite *.py call CocAction('format')
+"     autocmd BufWritePre *.go GoFmt
+" 	autocmd FileType scss setlocal iskeyword+=@-@
+" 	" autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
+"     " autocmd BufEnter *.tf* colorscheme kanagawa
+" augroup END
 
 
 " For Terraform
