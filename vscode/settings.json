@@ -1,6 +1,7 @@
 {
   "security.allowedUNCHosts": ["wsl.localhost"],
-  "workbench.colorTheme": "Deep Blue",
+  "workbench.colorTheme": "Atom One Dark",
+  "workbench.preferredDarkColorTheme": "Abyss",
   "files.associations": {
     "**/templates/*.tsx": "typescriptreact",
     "**/templates/*.html": "django-html",
@@ -9,6 +10,8 @@
     "**/requirements{/**,*}.{txt,in}": "pip-requirements",
     "*.html": "html"
   },
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespaceInRegexAndStrings": true,
   "emmet.includeLanguages": {
     "django-html": "html"
   },
@@ -35,32 +38,45 @@
     }
   },
   "[python]": {
-    "editor.defaultFormatter": "ms-python.autopep8",
+    "editor.defaultFormatter": "ms-python.python",
     "editor.formatOnSave": true
   },
   "[javascript]": {
-    "editor.formatOnSave": false
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 4
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 4
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[yaml]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 4
   },
-  "explorer.confirmDragAndDrop": false,
-  "explorer.confirmPasteNative": false,
-  "diffEditor.ignoreTrimWhitespace": false,
   "yaml.completion": true,
   "yaml.format.enable": true,
   "yaml.schemaStore.enable": false,
   "yaml.schemas": {
-    "https://www.schemastore.org/github-workflow.json": "*/**/.github/workflows/*.yaml"
+    "https://www.schemastore.org/github-workflow.json": "**/*.yaml"
   },
+  "explorer.confirmDragAndDrop": false,
+  "explorer.confirmPasteNative": false,
+  "editor.formatOnSave": true,
+  "editor.lineNumbers": "relative",
+  "diffEditor.ignoreTrimWhitespace": false,
   "diffEditor.codeLens": true,
+  "editor.renderWhitespace": "none",
   "redhat.telemetry.enabled": false,
   "docker.extension.enableComposeLanguageServer": false,
   "files.trimTrailingWhitespace": true,
   "security.workspace.trust.untrustedFiles": "open",
   "files.eol": "\n",
-  "editor.formatOnSave": true,
   "files.trimFinalNewlines": true,
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -73,5 +89,200 @@
     "markdown": false,
     "scminput": false
   },
-  "git.confirmSync": false
+  "git.confirmSync": false,
+  "remote.autoForwardPorts": false,
+  "geminicodeassist.project": "citric-totality-29jrc",
+  "[dockercompose]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    },
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "vim.leader": "<space>",
+  "vim.useSystemClipboard": true,
+  "vim.enableNeovim": true,
+  "vim.easymotion": true,
+  "vim.handleKeys": {
+    "<C-c>": false,
+    "<C-v>": false
+  },
+  "vim.visualModeKeyBindings": [
+    {
+      "before": [">"],
+      "after": [">", "g", "v"]
+    },
+    {
+      "before": ["<"],
+      "after": ["<", "g", "v"]
+    }
+  ],
+  "vim.insertModeKeyBindings": [
+    {
+      "before": ["j", "k"],
+      "after": ["esc"]
+    }
+  ],
+  "vim.normalModeKeyBindings": [
+    // FILE NAVIGATION & TREE
+    {
+      "before": ["<leader>", "r"],
+      "commands": ["workbench.files.action.showActiveFileInExplorer"]
+    },
+    // TAB & BUFFERMANAGEMENT
+    {
+      "before": ["<S-t>"],
+      "conmands": ["workbench.action.files.newUntitledFile"]
+    },
+    {
+      "before": ["<S-l>"],
+      "commands": ["workbench.action.previousEditor"]
+    },
+    {
+      "before": ["<S-h>"],
+      "commands": ["workbench.action.nexteditor"]
+    },
+    {
+      "before": ["<leader>", "b"],
+      "commands": ["workbench.action.openPreviousRecentlyusedEditorInGroup"]
+    },
+    {
+      "before": ["<leader>", "B"],
+      "commands": ["workbench.action.showAlleditors"]
+    },
+    {
+      "before": ["<leader>", "q"],
+      "commands": ["workbench.action.closeActiveEditor"]
+    },
+    //WINDOW &  SPLITMANAGEMENT
+    {
+      "before": ["<leader>", "V", "V"],
+      "commands": ["workbench.action.splitEditor"]
+    },
+    {
+      "before": ["<leader>", "v", "s"],
+      "commands": ["workbench.action.splitEditorDown"]
+    },
+    {
+      "before": ["<leader>", "a", "a"],
+      "commands": ["editor.action.showHover"]
+    },
+    // CODENAVIGATION
+    {
+      "before": ["<C-n>"],
+      "commands": [":nohl"]
+    },
+    {
+      "before": ["g", "d"],
+      "commands": ["editor.action.revealdefinition"]
+    },
+    {
+      "before": ["g", "D"],
+      "commands": ["editor.action.revealdefinitionAside"]
+    },
+    {
+      "before": ["g", "y"],
+      "commands": ["editor.action.gototypedefinition"]
+    },
+    {
+      "before": ["g", "r"],
+      "commands": ["editor.action-goToReferences"]
+    },
+    {
+      "before": ["[", "g"],
+      "commands": [" editor.action.marker.prevInFiles"]
+    },
+    {
+      "before": ["]", "g"],
+      "commands": ["editor.action.marker.nextInFiles"]
+    },
+    {
+      "before": ["<leader>", "s"],
+      "commands": ["workbench.action.showAllsymbols"]
+    },
+    {
+      "before": ["<leader>", "d"],
+      "commands": ["workbench.actions.view.problems"]
+    },
+    {
+      "before": ["<Ieader>", "d", "o"],
+      "commands": ["editor.action.quickFix"]
+    },
+    // {
+    //   "before": ["<leader>", "a"],
+    //   "commands": ["editor.action quickFix"]
+    // },
+    {
+      "before": ["<leader>", "r", "n"],
+      "commands": ["editor.action.rename"]
+    },
+    {
+      "before": ["<leader>", "*", "f"],
+      "commands": ["editor.action.formatDocument"]
+    },
+    // GIT
+    {
+      "before": ["<leader>", "g", "s"],
+      "conmands": ["workbench.view.scm"]
+    },
+    {
+      "before": ["<leader>", "g", "c"],
+      "conmands": ["git.commit"]
+    },
+    {
+      "before": ["<leader>", "g", "p"],
+      "commands": ["git.push"]
+    },
+    {
+      "before": ["<leader>", "g", "n"],
+      "commands": [" git.viewHistory"]
+    },
+    // RELOADCONFIG
+    {
+      "before": ["<leader>", "s", "v"],
+      "commands": ["workbench.action. reloadwindow"]
+    },
+    // COMMENTING
+    {
+      "before": ["g", "C", "C"],
+      "commands": ["editor.action.commentLine"]
+    },
+    {
+      "before": ["g", "c", "b"],
+      "commands": ["editor.action.blockComment"]
+    },
+    //ADDITIONAL USEFULMAPPINGS
+    {
+      "before": ["<leader>", "w"],
+      "commands": ["workbench.action.files.save"]
+    },
+    {
+      "before": ["<leader>", ""],
+      "commands": ["workbench.action.closeAllEditors"]
+    }
+    // // conflict with easymotion
+    // {
+    //   "before": ["<leader>", "<leader>"],
+    //   "commands": ["workbench.action.showCommands"]
+    // }
+  ],
+  "terminal.integrated.profiles.windows": {
+    "Ubuntu (WSL)": {
+      "path": "C:\\Windows\\System32\\wsl.exe",
+      "args": ["-d", "Ubuntu"]
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "Ubuntu (WSL)",
+  "terminal.integrated.shellIntegration.enabled": true,
+  "chat.mcp.gallery.enabled": true,
+  "chat.editor.wordWrap": "on",
+  "chat.viewSessions.orientation": "stacked",
+  "chat.mcp.autostart": "never"
 }

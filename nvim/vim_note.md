@@ -99,3 +99,8 @@
 - `:Rg <text>` - search for <text> in CWD
 - `Tab` - select multiple result to quickfix, Enter to open quickfix
 - `:cfdo %s/<text>/<text to replace with>/g | update` - replace all text from selected files by quickfix
+
+# Logging
+
+Start vim with verbose logging
+nvim -V9myVim.log

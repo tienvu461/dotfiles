@@ -69,7 +69,9 @@ ZSH_THEME="miloshadzic"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(aws git git-flow brew history node npm)
+plugins=(aws git git-flow brew history node npm
+        zsh-autosuggestions #https://github.com/zsh-users/zsh-autosuggestions
+    )
 
 source $ZSH/oh-my-zsh.sh
 
@@ -137,12 +139,22 @@ alias export_path="echo 'export \$PATH=\$PATH:/usr/bin'"
 
 # open note.txt
 alias note_file="nvim $HOME/workspace/note.txt"
+# jwt-decode
+jwt-decode() {
+    if [[ -x $(command -v jq) ]]; then
+        jq -R 'split(".") | .[0,1] | @base64d | fromjson' <<< "${1}"
+    else
+        echo "Error: jq is required."
+    fi
+}
+# AWS cli shortcut
 alias awswho="aws sts get-caller-identity"
 export AWS_PAGER=""
 #alias awssso="aws sso login --profile "
 awssso() {
     aws sso login --profile $1
     export AWS_PROFILE=$1
+    export AWS_REGION=ap-southeast-2
 }
 
 
@@ -185,8 +197,9 @@ export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
 
 export LBC_VERSION="v2.0.0"
 [ -x "$(command -v kubectl)" ] &&  source <(kubectl completion zsh)
-#alias k='kubectl'
-alias k="kubectl --insecure-skip-tls-verify  --kubeconfig ~/workspace/01_powertech/kube/tienvv.conf"
+# export KUBECONFIG=$HOME/.kube/config
+alias k='kubectl'
+# alias k="kubectl --insecure-skip-tls-verify  --kubeconfig ~/workspace/01_powertech/kube/tienvv.conf"
 alias klf='kubectl logs --tail=200  -f'
 alias kgs='kubectl get service -o wide'
 alias kgd='kubectl get deployment -o wide'
@@ -203,6 +216,7 @@ alias kdsa='kubectl describe service --all-namespaces'
 alias kdd='kubectl describe deployment'
 alias kdf='kubectl delete -f'
 alias kaf='kubectl apply -f'
+alias kak='kubectl apply -k'
 alias kci='kubectl cluster-info'
 alias uil='kubectl get nodes --no-headers | awk '\''{print $1}'\'' | xargs -I {} sh -c '\''echo {} ; kubectl describe node {} | grep Allocated -A 5 | grep -ve Event -ve Allocated -ve percent -ve -- ; echo '\'''
 alias kgc='k config get-contexts'
@@ -215,6 +229,10 @@ alias kd='k describe'
 fpath=($fpath ~/.zsh/completion)
 # helm
 [ -x "$(command -v helm)" ] &&  source <(helm completion zsh)
+
+# flux
+command -v flux >/dev/null && . <(flux completion zsh)
+
 # added by travis gem
 [ ! -s $HOME/.travis/travis.sh ] || source $HOME/.travis/travis.sh
 
@@ -280,7 +298,8 @@ preexec () {
 
 # WSL2 specific setups
 if [[ $WSL_DISTRO_NAME == "Ubuntu" ]]; then
-    export BROWSER=/usr/bin/wslview
+    # export BROWSER=/usr/bin/wslview
+    export BROWSER="/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 #if [[ $- == *i* ]]; then
 #  if [[ -z "$SCRIPT_RUNNING" ]]; then
 #    export SCRIPT_RUNNING=1
@@ -292,3 +311,14 @@ fi
 # custom scripts
 PATH=$HOME/.local/scripts:$PATH
 autoload -U +X bashcompinit && bashcompinit
+
+
+# java
+export PATH=$PATH:/opt/gradle/gradle-9.0.0/bin
+
+if [ -e /home/tienvv/.nix-profile/etc/profile.d/nix.sh ]; then . /home/tienvv/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init - zsh)"
+
+. "$HOME/.local/bin/env"
