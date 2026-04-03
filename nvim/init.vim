@@ -117,6 +117,9 @@ set nowritebackup
 set updatetime=300
 let g:gitgutter_max_signs = 2000
 
+" this need `git url` alias to be working
+nnoremap <leader>o :!echo `git url`/blob/`git rev-parse --abbrev-ref HEAD`/%\#L<C-R>=line('.')<CR> \| xargs "$BROWSER"<CR><CR>
+
 " beautify gitMessager popup window
 let g:git_messenger_floating_win_opts = { 'border': 'single' }
 let g:git_messenger_popup_content_margins = v:false
@@ -163,11 +166,11 @@ let g:NERDTreeDirArrowExpandable = '▸'
 let g:NERDTreeDirArrowCollapsible = '▾'
 let NERDTreeShowHidden=1
 
-let g:NERDTreeGitStatusWithFlags = 1         
+let g:NERDTreeGitStatusWithFlags = 1
 let g:NERDTreeIgnore = ['^node_modules$']
 " sync open file with NERDTree
 " " Check if NERDTree is open or active
-function! IsNERDTreeOpen()        
+function! IsNERDTreeOpen()
   return exists("t:NERDTreeBufName") && (bufwinnr(t:NERDTreeBufName) != -1)
 endfunction
 
@@ -284,7 +287,7 @@ nmap <leader>B :Buffers<cr>
 nnoremap <leader>sv :source $MYVIMRC<cr>
 inoremap jk <ESC>
 " split vert
-nnoremap <silent> vv <C-w>v 
+nnoremap <silent> vv <C-w>v
 
 function! GoFmt()
   let saved_view = winsaveview()
@@ -300,13 +303,13 @@ endfunction
 command! GoFmt call GoFmt()
 
 " Auto Commands
-" augroup auto_commands
-" 	autocmd BufWrite *.py call CocAction('format')
-"     autocmd BufWritePre *.go GoFmt
-" 	autocmd FileType scss setlocal iskeyword+=@-@
-" 	" autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
-"     " autocmd BufEnter *.tf* colorscheme kanagawa
-" augroup END
+augroup auto_commands
+	" autocmd bufwrite *.py call CocAction('format')
+  autocmd bufwritepre *.go GoFmt
+	autocmd FileType scss setlocal iskeyword+=@-@
+	" autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
+  " autocmd BufEnter *.tf* colorscheme kanagawa
+augroup END
 
 
 " For Terraform

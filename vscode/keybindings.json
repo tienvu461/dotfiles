@@ -1,0 +1,48 @@
+// Place your key bindings in this file to override the defaults
+// System-Level shortcuts
+// For Vim-enabled  keybinding check the settings.json
+// Leader key: <space>
+[
+  // Toggle sidebar (NERDTree alternative)
+  {
+    "key": "ctrl+t",
+    "command": "workbench.action.toggleSidebarVisibility"
+  },
+  // Quick Open
+  {
+    "key": "ctrl+p",
+    "command": "workbench.action.quickOpen"
+  },
+  // Global sear
+  {
+    "key": "ctrl+shift+f",
+    "command": "workbench.action.findInFiles"
+  },
+  // Zoom In
+  {
+    "key": "ctrl+shift+enter",
+    "command": "workbench.action.toggleMaximizedPanel"
+  },
+  // Nav splits
+  {
+    "key": "ctrl+h",
+    "command": "workbench.action.navigateLeft"
+  },
+  {
+    "key": "ctrl+j",
+    "command": "workbench.action.navigateDown"
+  },
+  {
+    "key": "ctrl+k",
+    "command": "workbench.action.navigateUp"
+  },
+  {
+    "key": "ctrl+l",
+    "command": "workbench.action.navigateRight"
+  },
+  // Toggle integrated Terminal
+  {
+    "key": "ctrl+`",
+    "command": "workbench.action.terminal.toggleTerminal"
+  }
+]

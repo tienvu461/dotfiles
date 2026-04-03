@@ -183,3 +183,26 @@ chmod +x gosak
 # mv gosak $GOPATH/bin/
 
 ```
+
+### Flux
+
+```
+curl -s https://fluxcd.io/install.sh | sudo bash
+```
+
+### Helm
+
+```
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+### Docker in WSL
+
+https://gist.github.com/dehsilvadeveloper/c3bdf0f4cdcc5c177e2fe9be671820c7
+
+### vscode
+
+mkdir -p $HOME/.config/Code/User
+cp keybindings.json $HOME/.config/Code/User/keybindings.json
