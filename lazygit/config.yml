@@ -1,0 +1,4 @@
+keybinding:
+  universal:
+    scrollUpMain: '<c-u>'
+    scrollDownMain: '<c-d>'

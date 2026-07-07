@@ -5,6 +5,8 @@ call plug#begin('~/.vim/plugged')
 Plug 'preservim/nerdtree'
 " tmux
 Plug 'christoomey/vim-tmux-navigator'
+" cursor beacon/highlighter
+Plug 'DanilaMihailov/beacon.nvim'
 
 " extra text objects
 Plug 'wellle/targets.vim'
@@ -20,8 +22,11 @@ Plug 'neoclide/coc.nvim', {'branch': 'release', 'do': 'yarn install --frozen-loc
 
 let g:coc_global_extensions = ['coc-tslint-plugin', 'coc-tsserver', 'coc-css', 'coc-html', 'coc-json', 'coc-prettier']  " list of CoC extensions needed
 
-" GIthub Copilot
+" GenAI stuffs: Claude, Copilot, etc
 " Plug 'github/copilot.vim'
+Plug 'coder/claudecode.nvim'
+Plug 'folke/snacks.nvim'
+
 " these two plugins will add highlighting and indenting to JSX and TSX files.
 Plug 'yuezk/vim-js'
 Plug 'HerringtonDarkholme/yats.vim'
@@ -34,14 +39,15 @@ Plug 'hashivim/vim-terraform'
 " post install (yarn install | npm install) then load plugin only for editing supported files
 " Plug 'prettier/vim-prettier', { 'do': 'yarn install --frozen-lockfile --production' }
 Plug 'numToStr/Comment.nvim'
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 
 " fuzzy search
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 " Git
-Plug 'airblade/vim-gitgutter'
+Plug 'lewis6991/gitsigns.nvim'
 Plug 'tpope/vim-fugitive'
-Plug 'rhysd/git-messenger.vim'
+Plug 'kdheepak/lazygit.nvim'
 
 " for theme and color and appearance
 Plug 'shaunsingh/nord.nvim'
@@ -49,10 +55,46 @@ Plug 'rebelot/kanagawa.nvim'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'ryanoasis/vim-devicons'
+
 call plug#end()
 lua require('Comment').setup()
+lua require('beacon').setup()
+lua << EOF
+local ok, claudecode = pcall(require, 'claudecode')
+if not ok then
+  vim.notify('[claudecode] load failed: ' .. tostring(claudecode), vim.log.levels.ERROR)
+else
+  local setup_ok, setup_err = pcall(claudecode.setup, {
+    terminal_cmd = '/opt/homebrew/bin/claude --model claude-sonnet-5',
+    focus_after_send = true,
+  })
+  if not setup_ok then
+    vim.notify('[claudecode] setup failed: ' .. tostring(setup_err), vim.log.levels.ERROR)
+  else
+    vim.g.mapleader = ' '
+    local map = vim.keymap.set
+    map('n', '<leader>tc', '<cmd>ClaudeCode<cr>',    { desc = 'Toggle Claude' })
+    map('v', '<leader>ts', '<cmd>ClaudeCodeSend<cr>', { desc = 'Send selection to Claude' })
+    map('n', '<leader>tf', '<cmd>ClaudeCodeFocus<cr>', { desc = 'Focus Claude panel' })
+    vim.notify('[claudecode] ready', vim.log.levels.INFO)
+  end
+end
+EOF
+lua << EOF
+local ok, configs = pcall(require, 'nvim-treesitter.configs')
+if ok then
+  configs.setup {
+    ensure_installed = { "json", "yaml", "javascript", "typescript", "tsx", "go", "python", "terraform", "html", "css" },
+    highlight = { enable = true },
+  }
+end
+EOF
 
-autocmd!
+set autoread
+augroup checktime_group
+  autocmd!
+  autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * checktime
+augroup END
 
 set nocompatible
 " absolute line number ON
@@ -64,7 +106,7 @@ set clipboard=unnamedplus
 set cursorline
 :highlight Cursorline cterm=bold ctermbg=black
 syntax enable
-set fileencoding=utf-8
+" set fileencoding=utf-8
 set title
 " enable mouse support
 set mouse=a
@@ -115,16 +157,43 @@ set nowritebackup
 " Having longer updatetime (default is 4000 ms = 4 s) leads to noticeable
 " delays and poor user experience.
 set updatetime=300
-let g:gitgutter_max_signs = 2000
+lua << EOF
+require('gitsigns').setup({
+  signs = {
+    add          = { text = '+' },
+    change       = { text = '~' },
+    delete       = { text = '_' },
+    topdelete    = { text = '‾' },
+    changedelete = { text = '~' },
+  },
+  on_attach = function(bufnr)
+    local gs = package.loaded.gitsigns
+    local map = function(mode, l, r, desc)
+      vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
+    end
+    -- drop-in for :GitMessenger — show full commit + diff for current line
+    map('n', '<leader>gb', function() gs.blame_line({ full = true }) end, 'Blame line')
+    -- hunk navigation (replaces gitgutter ]c / [c)
+    map('n', ']c', function() gs.next_hunk() end, 'Next hunk')
+    map('n', '[c', function() gs.prev_hunk() end, 'Prev hunk')
+    -- stage / reset hunk
+    map('n', '<leader>hs', gs.stage_hunk, 'Stage hunk')
+    map('n', '<leader>hr', gs.reset_hunk, 'Reset hunk')
+    map('n', '<leader>hp', gs.preview_hunk, 'Preview hunk')
+  end,
+})
+-- keep :GitMessenger command working
+vim.api.nvim_create_user_command('GitMessenger', function()
+  require('gitsigns').blame_line({ full = true })
+end, {})
+EOF
 
 " this need `git url` alias to be working
-nnoremap <leader>o :!echo `git url`/blob/`git rev-parse --abbrev-ref HEAD`/%\#L<C-R>=line('.')<CR> \| xargs "$BROWSER"<CR><CR>
+nnoremap <leader>O :!echo `git url`/blob/`git rev-parse --abbrev-ref HEAD`/%\#L<C-R>=line('.')<CR> \| xargs "$BROWSER"<CR><CR>
 
-" beautify gitMessager popup window
-let g:git_messenger_floating_win_opts = { 'border': 'single' }
-let g:git_messenger_popup_content_margins = v:false
-let g:git_messenger_include_diff = "current"
-let g:git_messenger_always_into_popup = v:true
+
+" open lazygit interactive
+nnoremap <leader>gg :LazyGit<CR>
 
 " Don't pass messages to |ins-completion-menu|.
 set shortmess+=c
@@ -149,6 +218,24 @@ let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'unique_tail'
 
 set guifont=Hack\ Nerd\ Font:h10
+
+"cursor highlight
+let g:beacon_size = 80          " width of the flash (default: 40)
+let g:beacon_minimal_jump = 10  " min lines jumped to trigger (default: 10)
+let g:beacon_shrink = 1         " shrink animation (1 = on)
+let g:beacon_fade = 1           " fade animation (1 = on)
+let g:beacon_timeout = 1000      " duration in ms (default: 500)
+let g:beacon_show_jumps = 1     " flash on jump-list moves (default: 1)
+let g:beacon_enable = 1         " toggle on/off
+highlight Beacon guibg=#00ff00 ctermbg=46
+
+highlight WinSeparator guifg=#4af262 guibg=NONE
+
+" set fillchars+=vert:┃
+" set fillchars=stl:-,stlnc:=
+set fillchars+=horiz:━,horizup:┻,horizdown:┳,vertright:┣,vertleft:┫,verthoriz:╋
+
+
 
 " Always show the signcolumn, otherwise it would shift the text each time
 " diagnostics appear/become resolved.
@@ -209,12 +296,12 @@ nnoremap <silent> <C-p> :Files<Cr>
 " command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
 command! -bang -nargs=* Rg
   \ call fzf#vim#grep(
-  \   'rg --column --line-number --no-heading --color=always --smart-case -- '.shellescape(<q-args>), 1,
+  \   'rg --hidden --column --line-number --no-heading --color=always --smart-case -- '.shellescape(<q-args>), 1,
   \   fzf#vim#with_preview({'options': '--delimiter : --nth 4..'}), <bang>0)
 let g:fzf_layout = { 'down':  '40%'}
 
 " Use <c-space> to trigger completion.
-let g:coc_node_path = '$HOME/.nvm/versions/node/v22.14.0/bin/node'
+let g:coc_node_path = '$HOME/.nvm/versions/node/v22.22.2/bin/node'
 if has('nvim')
   inoremap <silent><expr> <space-space> coc#refresh()
 else
@@ -273,6 +360,8 @@ let g:coc_global_extensions = [
   \  'coc-prettier',
   \  'coc-go',
   \  'coc-phpls',
+  \  'coc-pyright',
+  \  'coc-yaml',
   \ ]
 command! -nargs=0 Prettier :call CocAction('runCommand', 'prettier.formatFile')
 " command! ZoomToggle call s:ZoomToggle()
@@ -288,6 +377,8 @@ nnoremap <leader>sv :source $MYVIMRC<cr>
 inoremap jk <ESC>
 " split vert
 nnoremap <silent> vv <C-w>v
+" split horizontal
+nnoremap <silent> ss <C-w>s
 
 function! GoFmt()
   let saved_view = winsaveview()
@@ -313,7 +404,8 @@ augroup END
 
 
 " For Terraform
-let g:terraform_fmt_on_save=1
+" Formatting handled by terraform-ls via CoC (coc.preferences.formatOnSave)
+let g:terraform_fmt_on_save=0
 let g:terraform_align=1
 
 " for easymotion
@@ -335,5 +427,13 @@ map <Leader>j <Plug>(easymotion-j)
 map <Leader>k <Plug>(easymotion-k)
 
 " tmux
+
+" terminal mode navigation - buffer-local, skips fzf terminals
+autocmd TermOpen * if expand('%') !~# 'fzf'
+  \ | tnoremap <buffer> <C-h> <C-\><C-n><C-h>
+  \ | tnoremap <buffer> <C-j> <C-\><C-n><C-j>
+  \ | tnoremap <buffer> <C-k> <C-\><C-n><C-k>
+  \ | tnoremap <buffer> <C-l> <C-\><C-n><C-l>
+  \ | endif
 
 " nnoremap <silent> <C-f> :silent !tmux neww tmux-sessionizer<CR>

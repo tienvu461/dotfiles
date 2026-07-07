@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Auto-adapt tmux pane widths when terminal moves between monitors.
+# Triggered by client-resized hook.
+# Args: $1=session $2=window $3=client_width
+
+session="$1"
+window="$2"
+client_width="$3"
+
+[[ -z "$session" || -z "$window" || -z "$client_width" ]] && exit 0
+
+# Skip single-pane windows
+pane_count=$(tmux list-panes -t "${session}:${window}" 2>/dev/null | wc -l | tr -d ' ')
+[[ "$pane_count" -le 1 ]] && exit 0
+
+# Skip windows with only vertical splits (no side-by-side panes)
+h_splits=$(tmux list-panes -t "${session}:${window}" -F '#{pane_left}' 2>/dev/null | sort -un | wc -l | tr -d ' ')
+[[ "$h_splits" -le 1 ]] && exit 0
+
+# Percentage of width to give leftmost pane (vim) per screen size.
+# Measured col counts:
+#   MacBook 14" native : 215
+#   ACER/LG office        : 365
+#   LG home            : unknown (run: tmux display -p '#{client_width}')
+if [[ "$client_width" -ge 400 ]]; then
+    pct=78   # LG (placeholder until measured)
+elif [[ "$client_width" -ge 290 ]]; then
+    pct=70   # ACER 365
+else
+    pct=70   # MacBook 215
+fi
+
+main_w=$(( client_width * pct / 100 ))
+
+# Resize the leftmost pane (pane_left == 0 → the vim pane in sessionizer layout)
+target_pane=$(tmux list-panes -t "${session}:${window}" -F '#{pane_left} #{pane_id}' 2>/dev/null \
+    | awk '$1 == 0 { print $2; exit }')
+
+[[ -z "$target_pane" ]] && exit 0
+
+tmux resize-pane -t "$target_pane" -x "$main_w" 2>/dev/null

@@ -1,5 +1,4 @@
 - Common:
-
   - List all tmux sessions and windows: `<ctrl><space>w`
   - Detach from tmux to terminal prompt: `<ctrl><space>d`
   - Reload tmux from configuration file: `<ctrl><space>r`
@@ -14,7 +13,7 @@
 - Split pane:
   - Vertical: `<C-Space> =`
   - Horizontal: `<C-Space> -`
-  - Resize: `<C-Space-Hold Alt-Left/Right/Up/Down>`
+  - Resize: `<C-Space-Hold H/J/K/L>`
   - Maximize: `<C-Space> z`
   - Swap pane: `<C-Space> {/}`
   - Show pane num: `<C-Space> q`
