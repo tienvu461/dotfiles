@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+#
+# wta — add a worktree inside a bare-backed container (see `wtree`)
+#
+# Usage:
+#   wta [-p] <branch> [base-ref]
+#
+# Behavior:
+#   - if <branch> already exists locally or on origin, it is checked out
+#   - otherwise it is created from [base-ref] (default: origin's default branch)
+#   - directory name defaults to the LAST path component of <branch> (flat layout);
+#     pass -p to preserve the full branch path as the directory name.
+#
+# Examples:
+#   wta feature/tls                 -> dir tls/,           new branch feature/tls
+#   wta feature/tls origin/main     -> dir tls/,           branched off origin/main
+#   wta -p feature/tls              -> dir feature/tls/,   new branch feature/tls
+#   wta existing-remote-branch      -> dir existing-remote-branch/, checked out + tracking
+#
+set -euo pipefail
+
+die()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
+info() { printf '\033[36m• %s\033[0m\n' "$*"; }
+ok()   { printf '\033[32m✓ %s\033[0m\n' "$*"; }
+
+PRESERVE_PATH=0
+if [ "${1:-}" = "-p" ]; then
+    PRESERVE_PATH=1
+    shift
+fi
+
+[ $# -ge 1 ] || die "usage: wta [-p] <branch> [base-ref]"
+
+BRANCH="$1"
+BASE="${2:-}"
+
+# Walk up to find the container root (the directory holding .bare).
+ROOT="$PWD"
+while [ "$ROOT" != "/" ] && [ ! -d "$ROOT/.bare" ]; do
+    ROOT="$(dirname "$ROOT")"
+done
+[ -d "$ROOT/.bare" ] || die "not inside a bare worktree container (no .bare found above $PWD)"
+
+cd "$ROOT"
+GITDIR="$ROOT/.bare"
+
+# Directory name: flat (last component) unless -p was given.
+if [ "$PRESERVE_PATH" -eq 1 ]; then
+    DIR="$BRANCH"
+else
+    DIR="${BRANCH##*/}"
+fi
+
+[ -e "$DIR" ] && die "$DIR already exists in $ROOT"
+
+branch_exists() {
+    git --git-dir="$GITDIR" show-ref --verify --quiet "refs/heads/$1" \
+        || git --git-dir="$GITDIR" show-ref --verify --quiet "refs/remotes/origin/$1"
+}
+
+if branch_exists "$BRANCH"; then
+    info "checking out existing branch '$BRANCH' -> $DIR/"
+    git worktree add "$DIR" "$BRANCH" >/dev/null
+    # Bare clones leave local branches without an upstream. If a matching
+    # origin branch exists, wire up tracking so pull/push/status just work.
+    if git --git-dir="$GITDIR" show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+        git -C "$DIR" branch --quiet --set-upstream-to="origin/$BRANCH" >/dev/null 2>&1 || true
+    fi
+else
+    if [ -z "$BASE" ]; then
+        BASE="origin/$(git --git-dir="$GITDIR" symbolic-ref --short HEAD 2>/dev/null || echo main)"
+    fi
+    info "creating branch '$BRANCH' from '$BASE' -> $DIR/"
+    git worktree add "$DIR" -b "$BRANCH" "$BASE" >/dev/null
+fi
+
+ok "ready:  cd $ROOT/$DIR"

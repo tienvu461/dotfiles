@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+#
+# wtree — set up a bare-backed worktree container under current dir
+#
+# Usage:
+#   wtree <repo-url> [dir-name]
+#
+# Result:  ./<dir-name>/
+#            .bare/              bare clone (the object database / source of truth)
+#            .git                file pointing at .bare
+#            <default-branch>/   first worktree, checked out
+#
+# Override the base dir with:  WORKSPACE_DIR=/some/where wtree ...
+#
+set -euo pipefail
+
+WORKSPACE="${WORKSPACE_DIR:-$PWD}"
+
+die()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
+info() { printf '\033[36m• %s\033[0m\n' "$*"; }
+ok()   { printf '\033[32m✓ %s\033[0m\n' "$*"; }
+
+[ $# -ge 1 ] || die "usage: wtree <repo-url> [dir-name]"
+
+REPO_URL="$1"
+
+# Derive a directory name from the URL unless one is given:
+#   git@github.com:you/http-server.git  -> http-server
+#   https://github.com/you/http-server  -> http-server
+if [ $# -ge 2 ]; then
+    NAME="$2"
+else
+    NAME="$(basename "$REPO_URL" .git)"
+fi
+
+TARGET="$WORKSPACE/$NAME"
+
+# Refuse to clobber an existing non-empty directory.
+if [ -e "$TARGET" ] && [ -n "$(ls -A "$TARGET" 2>/dev/null)" ]; then
+    die "$TARGET already exists and is not empty"
+fi
+
+mkdir -p "$TARGET"
+cd "$TARGET"
+
+info "cloning bare into $TARGET/.bare"
+git clone --bare "$REPO_URL" .bare
+
+# The .git-as-file indirection. Use printf, not echo: echo on some shells
+# (notably Windows PowerShell/CMD) injects CRLF and corrupts this file,
+# producing "fatal: invalid gitfile format".
+printf 'gitdir: ./.bare\n' > .git
+
+# A bare clone does NOT set up remote tracking, so `git fetch` would only
+# see the default branch. Rewrite the refspec so all remote branches appear.
+git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+
+info "fetching all remote branches"
+git fetch --all --quiet
+
+# Detect the remote's actual default branch instead of assuming 'main'.
+DEFAULT_BRANCH="$(git --git-dir=.bare symbolic-ref --short HEAD 2>/dev/null || echo main)"
+
+info "adding first worktree: $DEFAULT_BRANCH"
+git worktree add "$DEFAULT_BRANCH" >/dev/null
+
+# Warn if the repo uses submodules — worktrees + submodules need extra care.
+if git --git-dir=.bare cat-file -e "HEAD:.gitmodules" 2>/dev/null; then
+    printf '\033[33m! this repo has submodules — after cd, run: git submodule update --init --recursive\033[0m\n'
+fi
+
+ok "ready:  cd $TARGET/$DEFAULT_BRANCH"

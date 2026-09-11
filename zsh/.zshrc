@@ -1,5 +1,15 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$PATH
+export PATH=$HOME/bin:/usr/local/bin:$HOME/workspace/00_dotfiles/bin:$PATH
+export PATH="$PATH:$HOME/.docker/bin"
+export PATH="$HOME/.local/bin:$PATH"
+
+# MACOS specific
+if [[ "$(uname)" == "Darwin" ]]; then
+    export PATH="$PATH:/opt/homebrew/opt/libpq/bin"
+    # Add Visual Studio Code (code) due to missing admin permission
+    export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin:/Applications/DBeaver.app/Contents/MacOS:~/workspace/00_dotfiles/tableplus/TablePlus.app/Contents/MacOS"
+    export XDG_CONFIG_HOME="$HOME/.config"
+fi
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -69,10 +79,11 @@ ZSH_THEME="miloshadzic"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(aws git git-flow brew history node npm
+plugins=(aws git git-flow history node npm
         zsh-autosuggestions #https://github.com/zsh-users/zsh-autosuggestions
     )
 
+SHOW_AWS_PROMPT=true
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
@@ -91,10 +102,10 @@ source $ZSH/oh-my-zsh.sh
 
 export EDITOR=nvim
 # nvim setup
-export PATH=$PATH:/opt/nvim-linux-x86_64/bin
+#export PATH=$PATH:/opt/nvim-linux-x86_64/bin
 alias vi=nvim
 # using fzf in CTRL-R
-# source <(fzf --zsh) # for fzf > 0.48
+source <(fzf --zsh) # for fzf > 0.48
 # source /usr/share/doc/fzf/examples/key-bindings.zsh
 # source /usr/share/doc/fzf/examples/completion.zsh
 # Compilation flags
@@ -131,9 +142,6 @@ alias ll="ls -lah"
 alias enc_ssl="openssl enc -aes-256-cbc"
 alias dec_ssl="openssl enc -aes-256-cbc -d"
 
-# get pacman vpn password
-alias pacman_vpn="echo 'i.|/B1[iz.' | pbcopy"
-
 # show export PATH
 alias export_path="echo 'export \$PATH=\$PATH:/usr/bin'"
 
@@ -147,33 +155,98 @@ jwt-decode() {
         echo "Error: jq is required."
     fi
 }
-# AWS cli shortcut
-alias awswho="aws sts get-caller-identity"
-export AWS_PAGER=""
-#alias awssso="aws sso login --profile "
-awssso() {
-    aws sso login --profile $1
-    export AWS_PROFILE=$1
-    export AWS_REGION=ap-southeast-2
+
+# quick worktree dir switch with peco
+# need peco installation
+wt() {
+  local dir
+  dir=$(git worktree list | peco | awk '{print $1}')
+  [[ -n "$dir" ]] && cd "$dir"
 }
+# AWS cli shortcut
+export AWS_PAGER=""
+
+# aws → always via aws-vault when AWS_PROFILE is set.
+# Escape hatch for raw binary (e.g. `aws configure sso`): AWS_NO_VAULT=1 aws ...
+function aws() {
+    if [[ -n "${AWS_NO_VAULT:-}" ]]; then
+        command aws "$@"
+        return $?
+    fi
+    if [[ -z "${AWS_PROFILE:-}" ]]; then
+        echo "aws: no AWS_PROFILE set. Run: awssso <profile>  (or AWS_NO_VAULT=1 aws ...)" >&2
+        return 1
+    fi
+    command aws-vault exec --biometrics "$AWS_PROFILE" -- aws "$@"
+}
+
+# ave is now just an alias preserved for muscle memory
+function ave() { aws "$@"; }
+alias awswho="aws sts get-caller-identity"
+
+# Refresh SSO token for current profile
+function awslogin() {
+    local profile="${1:-$AWS_PROFILE}"
+    if [[ -z "$profile" ]]; then
+        echo "Usage: awslogin [profile]  (or set AWS_PROFILE first)"
+        return 1
+    fi
+    command aws sso login --profile "$profile"
+}
+
+# Set profile + region + tmux colors
+function awssso() {
+    export AWS_PROFILE=$1
+    export AWS_REGION=eu-west-1
+    if [[ -n "$TMUX" ]]; then
+        local danger_profiles=(admin master-admin master-ro)
+        local is_danger=0
+        for kw in "${danger_profiles[@]}"; do
+            [[ "$AWS_PROFILE" == *"$kw"* ]] && is_danger=1 && break
+        done
+        if (( is_danger )); then
+            tmux set-window-option pane-active-border-style 'fg=colour210,bold'
+        else
+            tmux set-window-option pane-active-border-style 'fg=green'
+        fi
+    fi
+    awslogin $AWS_PROFILE
+    echo "AWS profile: $AWS_PROFILE"
+}
+
 
 
 # assume-role aws
-# make sure pecu, assume-role were installed
-function aws_set() {
-    BASTION=$1
-    AWS_PROFILE=$(grep -iE "\[*\]" ~/.aws/credentials | tr -d "[]" | peco)
-    # assume-role $BASTION $AWS_PROFILE
-    if ! command -v decrypt.key.sh &> /dev/null
-    then
-        eval $(assume-role $AWS_PROFILE)
-    else
-        eval $(decrypt.key.sh $BASTION | assume-role $AWS_PROFILE)
-    fi
+# make sure peco, assume-role were installed
+# function aws_set() {
+#     BASTION=$1
+#     AWS_PROFILE=$(grep -iE "\[*\]" ~/.aws/credentials | tr -d "[]" | peco)
+#     # assume-role $BASTION $AWS_PROFILE
+#     if ! command -v decrypt.key.sh &> /dev/null
+#     then
+#         eval $(assume-role $AWS_PROFILE)
+#     else
+#         eval $(decrypt.key.sh $BASTION | assume-role $AWS_PROFILE)
+#     fi
+# }
+function awsssh(){
+    ssh $(aws ec2 describe-instances \
+        --query "Reservations[*].Instances[*].[InstanceId, PrivateIpAddress, Tags[?Key=='Name'].Value | [0]]" \
+        --output text | column -t | peco | awk '{print $1}')
 }
 
+# https://github.com/SocketDev/sfw-free
+# software supply chain attack protection
+if command -v sfw 1>/dev/null 2>&1; then
+    alias npm="sfw npm"
+    alias pnpm="sfw pnpm"
+    alias yarn="sfw yarn"
+    # alias pip="sfw pip"
+    # alias uv="sfw uv"
+fi
+
 # ssh quick select
-# make sure pecu was installed
+# make sure peco was installed
 # function ssh_start() {
 #     REMOTE=$(grep )
 # }
@@ -189,6 +262,19 @@ complete -C '/usr/local/bin/aws_completer' aws
 # gcp settings
 # gcloud autocompletion
 # source /usr/share/google-cloud-sdk/completion.zsh.inc
+
+# mole — unified jumpbox tunnel CLI (see scripts/mole)
+alias cknpd='mole kube nonprod'    # clem-kube nonprod (one-shot kubectl)
+alias ckprd='mole kube prod'       # clem-kube prod    (one-shot kubectl)
+alias csnpd='mole shell nonprod'   # subshell with KUBECONFIG+aws-vault, k*/kubectl work
+alias csprd='mole shell prod'
+alias crnpd='mole rds  nonprod'    # clem-rds  nonprod
+alias crprd='mole rds  prod'       # clem-rds  prod
+alias cdnpd='mole dbeaver nonprod' # dbeaver  nonprod (tunnel + IAM token)
+alias cdprd='mole dbeaver prod'    # dbeaver  prod
+alias mdown='mole down'
+
+[[ -n "$MOLE_ENV" ]] && RPROMPT="%F{cyan}[mole:$MOLE_ENV]%f $RPROMPT"
 
 # kubectl settings
 
@@ -243,54 +329,63 @@ command -v flux >/dev/null && . <(flux completion zsh)
 alias g="git"
 alias gp="git push"
 alias ga="git add"
+unalias gtfo 2>/dev/null
+gtfo() {
+    local branch="${1:-$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')}"
+    if [[ -z "$branch" ]]; then
+        git show-ref --verify --quiet refs/remotes/origin/main && branch="main" || branch="master"
+    fi
+    git fetch origin "$branch:$branch"
+}
+unalias gd 2>/dev/null
+gd() {
+    local ref="${1:-$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/@@')}"
+    if [[ -z "$ref" ]]; then
+        git show-ref --verify --quiet refs/remotes/origin/main && ref="origin/main" || ref="origin/master"
+    fi
+    hunk diff "$(git merge-base HEAD "$ref")"
+}
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-# Terraform
-export PATH="$HOME/.tfenv/bin:$PATH"
-complete -o nospace -C /usr/local/bin/terragrunt terragrunt
+# Terraform 
+# export PATH="$HOME/.tfenv/bin:$PATH"
+# complete -o nospace -C /usr/local/bin/terragrunt terragrunt
 
-# GO
-GOPATH=$HOME/go
-PATH=/usr/local/go/bin:$GOPATH/bin:$PATH
+# GO with custom installation path
+export GOROOT=$HOME/workspace/00_dotfiles/go
+export GOPATH=$HOME/go
+export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 
 
-# RPROMPT for date & aws profile
-strlen () {
-    FOO=$1
-    local zero='%([BSUbfksu]|([FB]|){*})'
-    LEN=${#${(S%%)FOO//$~zero/}}
-    echo $LEN
+# Timestamp to terminal for logging
+preexec() {
+    print -P "%F{240}[$(date +'%Y%m%dT%H%M%S')]%f"
 }
 
-# show right prompt with date ONLY when command is executed
-preexec () {
-    # skip preexec for commands with command substitution $(...)
-    if [[ "$1" == *'$('* ]] then
-        return
-    fi
-    DATE=$( date +"[%Y%m%dT%H%M%S]" )
-    local len_right=$( strlen "$DATE" )
-    len_right=$(( $len_right+1 ))
-    local right_start=$(($COLUMNS - $len_right))
+# Border title reflects AWS context after each command (including awssso)
+_precmd_border_title() {
+    [[ -z "$TMUX" ]] && return
+    local title=""
+    [[ -n "$AWS_PROFILE" ]] && title="$AWS_PROFILE"
+    [[ -n "$AWS_REGION" ]]  && title+=" | $AWS_REGION"
+    [[ -z "$title" ]] && return
 
-    local len_cmd=$( strlen "$@" )
-    local len_prompt=$(strlen "$PROMPT" )
-    local len_left=$(($len_cmd+$len_prompt))
+    local danger=0
+    local danger_profiles=(admin master-admin master-ro)
+    for kw in "${danger_profiles[@]}"; do
+        [[ "$AWS_PROFILE" == *"$kw"* ]] && danger=1 && break
+    done
 
-    RDATE="\n\033[${right_start}C ${DATE}"
-
-    if [ $len_left -lt $right_start ]; then
-        # command does not overwrite right prompt
-        # ok to move up one line
-        echo -e "\033[1A${RDATE}"
+    if (( danger )); then
+        printf '\033]2;⚠ %s ⚠\033\\' "$title"
     else
-        echo -e "${RDATE}"
+        printf '\033]2;%s\033\\' "$title"
     fi
-
 }
+add-zsh-hook precmd _precmd_border_title
 
 # add Pulumi to the PATH
 # export PATH=$PATH:/home/tienvv-eh/.pulumi/bin
@@ -300,6 +395,12 @@ preexec () {
 if [[ $WSL_DISTRO_NAME == "Ubuntu" ]]; then
     # export BROWSER=/usr/bin/wslview
     export BROWSER="/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+elif [[ "$(uname)" == "Darwin" ]]; then
+    # `open` launches the default browser. The explicit Chrome path below breaks
+    # tools that exec $BROWSER by splitting on spaces (e.g. `gh ... --web`).
+    export BROWSER="open"
+    # export BROWSER="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+fi
 #if [[ $- == *i* ]]; then
 #  if [[ -z "$SCRIPT_RUNNING" ]]; then
 #    export SCRIPT_RUNNING=1
@@ -307,7 +408,7 @@ if [[ $WSL_DISTRO_NAME == "Ubuntu" ]]; then
 #    exit
 #  fi
 #fi
-fi
+#
 # custom scripts
 PATH=$HOME/.local/scripts:$PATH
 autoload -U +X bashcompinit && bashcompinit
@@ -321,4 +422,26 @@ export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init - zsh)"
 
-. "$HOME/.local/bin/env"
+#. "$HOME/.local/bin/env"
+
+## Persuit
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/completion.zsh.inc'; fi
+
+# Hook
+autoload -U add-zsh-hook
+load-nvmrc() {
+  local nvmrc_path=""
+  nvmrc_path="$(nvm_find_nvmrc 2>/dev/null)"
+  if [ -n "$nvmrc_path" ]; then
+    nvm use --silent >/dev/null || nvm install
+  fi
+}
+add-zsh-hook chpwd load-nvmrc
+load-nvmrc
+
+
+export CLAUDE_CODE_NO_FLICKER=0

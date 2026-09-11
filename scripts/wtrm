@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+#
+# wtrm — remove a worktree inside a bare-backed container (see `wtree`, `wta`)
+#
+# Usage:
+#   wtrm [-f] [-d] <dir-or-branch>
+#
+# Behavior:
+#   - <dir-or-branch> is matched first as a directory name under the
+#     container root, then (for the flat layout `wta` creates) as a
+#     branch name, so `wtrm feature/tls` finds dir tls/ same as `wtrm tls`.
+#   - -f  force removal even if the worktree has uncommitted changes
+#   - -d  also delete the local branch after the worktree is removed
+#
+# Examples:
+#   wtrm tls                        -> removes worktree dir tls/
+#   wtrm feature/tls                -> removes worktree dir tls/ (matched by branch)
+#   wtrm -f -d feature/tls           -> force-remove + delete local branch
+#
+set -euo pipefail
+
+die()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
+info() { printf '\033[36m• %s\033[0m\n' "$*"; }
+ok()   { printf '\033[32m✓ %s\033[0m\n' "$*"; }
+
+FORCE=0
+DELETE_BRANCH=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -f) FORCE=1; shift ;;
+        -d) DELETE_BRANCH=1; shift ;;
+        --) shift; break ;;
+        -*) die "unknown option: $1" ;;
+        *) break ;;
+    esac
+done
+
+[ $# -ge 1 ] || die "usage: wtrm [-f] [-d] <dir-or-branch>"
+TARGET="$1"
+
+# Walk up to find the container root (the directory holding .bare).
+ROOT="$PWD"
+while [ "$ROOT" != "/" ] && [ ! -d "$ROOT/.bare" ]; do
+    ROOT="$(dirname "$ROOT")"
+done
+[ -d "$ROOT/.bare" ] || die "not inside a bare worktree container (no .bare found above $PWD)"
+
+GITDIR="$ROOT/.bare"
+
+# Resolve TARGET to an actual worktree directory: try it as a dir name first,
+# then fall back to matching it against each worktree's checked-out branch.
+if [ -d "$ROOT/$TARGET" ]; then
+    DIR="$TARGET"
+else
+    DIR="$(git --git-dir="$GITDIR" worktree list --porcelain | awk -v b="refs/heads/$TARGET" '
+        /^worktree / { wt=$2 }
+        /^branch / { if ($2 == b) print wt }
+    ')"
+    DIR="${DIR#"$ROOT"/}"
+fi
+[ -n "$DIR" ] && [ -d "$ROOT/$DIR" ] || die "no worktree found for '$TARGET'"
+
+BRANCH_NAME="$(git --git-dir="$GITDIR" worktree list --porcelain | awk -v wt="$ROOT/$DIR" '
+    /^worktree / { cur=$2 }
+    /^branch / { if (cur == wt) print $2 }
+' | sed 's#^refs/heads/##')"
+
+FORCE_FLAG=""
+[ "$FORCE" -eq 1 ] && FORCE_FLAG="--force"
+
+info "removing worktree $DIR/"
+git --git-dir="$GITDIR" worktree remove $FORCE_FLAG "$ROOT/$DIR"
+
+if [ "$DELETE_BRANCH" -eq 1 ]; then
+    [ -n "$BRANCH_NAME" ] || die "worktree removed, but no local branch found to delete"
+    info "deleting branch '$BRANCH_NAME'"
+    git --git-dir="$GITDIR" branch -D "$BRANCH_NAME"
+fi
+
+ok "removed: $DIR/"

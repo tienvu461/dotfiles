@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Cross-repo worktree opener for herdr — the one thing native worktree
+# actions can't do (they require your current space to already be inside the
+# repo). fzf-pick any dir under ~/workspace, resolve its repo root, and open
+# it as a herdr worktree space (reusing one if already open).
+set -euo pipefail
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    selected=$(find ~/workspace/ -mindepth 2 -maxdepth 2 -type d | fzf)
+fi
+[[ -z ${selected:-} ]] && exit 0
+selected=$(cd "$selected" && pwd)
+
+# Label is just the branch/dir name — herdr already groups spaces by repo,
+# so a repo-name prefix would be redundant. Exception: main/master is the
+# same label across every repo (each repo's primary worktree dir is named
+# after the default branch), so disambiguate just those two with the repo name.
+label=$(basename "$selected" | tr . _)
+case "$label" in
+    main|master) label="$label/$(basename "$(dirname "$selected")")" ;;
+esac
+common_dir=$(git -C "$selected" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+repo_cwd=$selected
+[[ -n $common_dir ]] && repo_cwd=$(dirname "$common_dir")
+
+result=$(herdr worktree open --cwd "$repo_cwd" --path "$selected" --label "$label" --focus --json)
+ws_id=$(jq -r '.result.workspace.workspace_id' <<<"$result")
+
+# worktree open only applies --label when it CREATES the workspace; reopening
+# an already-open one just refocuses it and keeps whatever label it had
+# before (e.g. from before the main/master dedup above existed). Rename
+# unconditionally so an already-open space still gets corrected.
+herdr workspace rename "$ws_id" "$label" >/dev/null
+
+# Only lay out panes the first time the space opens.
+[[ $(jq -r '.result.already_open' <<<"$result") == "true" ]] && exit 0
+
+root=$(jq -r '.result.root_pane.pane_id' <<<"$result")
+
+# tab1: continue last Claude session on sonnet-5, falling back to a fresh
+# session when there's nothing to continue (claude -c exits non-zero then).
+herdr pane run "$root" "claude -c --model claude-sonnet-5 || claude --model claude-sonnet-5"
+
+# tab2: nvim on the workspace root. cwd inheritance on tab create/split is
+# unreliable (falls back to whatever pane is UI-focused elsewhere), so pin
+# it explicitly instead of relying on it.
+nvimp=$(herdr tab create --workspace "$ws_id" --label edit --cwd "$selected" --no-focus | jq -r '.result.root_pane.pane_id')
+herdr pane run "$nvimp" "nvim ."
+
+# tab3: plain terminal, 50/50 vsplit.
+term=$(herdr tab create --workspace "$ws_id" --label term --cwd "$selected" --no-focus | jq -r '.result.root_pane.pane_id')
+herdr pane split "$term" --direction right --cwd "$selected" --no-focus >/dev/null
+# worktree open used --focus and all tab creates use --no-focus, so we stay on tab1 (Claude).

@@ -20,6 +20,19 @@ tmux_path="$HOME/.tmux.conf"
 git_file="$(pwd)/git/.gitconfig"
 git_path="$HOME/.gitconfig"
 
+# Lazygit
+lazygit_folder="$HOME/.config/lazygit"
+lazygit_file="$(pwd)/lazygit/config.yml"
+lazygit_path="$HOME/.config/lazygit/config.yml"
+
+# Claude Code hooks
+claude_hooks_folder="$(pwd)/claude/hooks"
+claude_hooks_path="$HOME/.claude/hooks"
+
+# herdr
+herdr_file="$(pwd)/herdr/config.toml"
+herdr_path="$HOME/.config/herdr/config.toml"
+
 # alacritty
 alacritty_file="$(pwd)/alacritty/alacritty.toml"
 alacritty_path="$HOME/.config/alacritty/alacritty.toml"
@@ -106,7 +119,10 @@ echo -e " ${y}6)${n} Configure ${b}Alacritty${n}"
 echo -e " ${y}7)${n} Configure ${b}Kitty${n}"
 echo -e " ${y}8)${n} Install ${b}Vim Plug${n}"
 echo -e " ${y}9)${n} Configure ${b}i3${n}"
-echo -e " ${y}10)${n} Configure ${b}Custom scripts${n}"
+echo -e " ${y}10)${n} Configure ${b}lazygit${n}"
+echo -e " ${y}11)${n} Configure ${b}Claude hooks${n}"
+echo -e " ${y}12)${n} Configure ${b}herdr${n}"
+echo -e " ${y}99)${n} Configure ${b}Custom scripts${n}"
 echo -e "$d-------------------------------------------------------$n"
 
 # Input option
@@ -156,6 +172,20 @@ do
       createLink $i3_files $i3_path 'i3'
       break;;
     '10')
+      mkdir -p $(dirname $lazygit_path)
+      createLink $lazygit_file $lazygit_path 'lazygit'
+      break;;
+    '11')
+      mkdir -p $claude_hooks_path
+      for f in $claude_hooks_folder/*.sh; do
+        createLink $f $claude_hooks_path/$(basename $f) 'bash'
+      done
+      break;;
+    '12')
+      mkdir -p $(dirname $herdr_path)
+      createLink $herdr_file $herdr_path 'herdr'
+      break;;
+    '99')
       # mkdir -p $local_scripts_path
       createLink $scripts_path $local_scripts_path 'script' 'show'
       break;;

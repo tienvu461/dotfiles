@@ -66,6 +66,10 @@
 
 # git
 
+#### lazygit
+
+- `Spacegg` - open lazygit
+
 #### Viewing diff and blame with git-messenger
 
 - `Spacegm` - open git diff popup
@@ -85,6 +89,10 @@
   - `\(\)` - capture group
   - `\1` - return group 1
   - eg: 1,test,"100" -> 1,test,100
+
+# Commparing 2 file
+
+- `:vert diffsplit <file2>` - Open 2 file in vertical mode and diff
 
 # add multiple line at the same time
 

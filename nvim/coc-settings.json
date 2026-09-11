@@ -1,15 +1,4 @@
 {
-  "coc.preferences.formatOnSaveFiletypes": [
-    "css",
-    "sass",
-    "scss",
-    "markdown",
-    "html",
-    "json",
-    "javascript",
-    "javascriptreact",
-    "terraform"
-  ],
   "coc.preferences.formatOnSave": true,
   "prettier.singleQuote": true,
   "javascript.autoClosingTags": true,
@@ -22,6 +11,13 @@
     "html"
   ],
   "codeLens.enable": false,
+  "json.format.enable": true,
+  "yaml.schemaStore.enable": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml",
+    "https://json.schemastore.org/github-action.json": ".github/actions/**/action.yml"
+  },
+  "json.schemaDownload.enable": true,
   "go.goplsOptions": {
     "completeUnimported": true
   },

@@ -1,0 +1,78 @@
+onboarding = false
+# herdr configuration
+# Place this file at ~/.config/herdr/config.toml
+
+[keys]
+# Prefix key — match the old tmux C-Space.
+prefix = "ctrl+space"
+
+# Workspace picker on prefix+s (tmux choose-tree muscle memory).
+# settings takes the freed prefix+w in the swap.
+workspace_picker = "prefix+s"
+settings = "prefix+w"
+
+# Navigate-mode movement: vim keys instead of arrows.
+# j/k move between workspaces, h/l between panes. Arrows still work for
+# pane up/down (herdr keeps them hardwired).
+navigate_workspace_down = "j"
+navigate_workspace_up = "k"
+navigate_pane_left = "h"
+navigate_pane_right = "l"
+
+# Worktree management.
+# new_worktree stays on its default prefix+shift+g (creates within current repo).
+# native open_worktree only works from a space already inside the repo, so
+# prefix+f runs a cross-repo fzf picker instead (the old tmux-sessionizer job).
+
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "~/.local/scripts/herdr-sessionizer"
+width = "80%"
+height = "80%"
+
+# gh-pr plugin actions on the focused agent pane.
+[[keys.command]]
+key = "prefix+u"
+type = "plugin_action"
+command = "gh-pr.open-pr"
+description = "open PR in browser"
+
+[[keys.command]]
+key = "prefix+i"
+type = "plugin_action"
+command = "gh-pr.refresh"
+description = "refresh PR status"
+
+# last-workspace plugin: jump back to the workspace you came from (tmux prefix+L).
+[[keys.command]]
+key = "prefix+L"
+type = "plugin_action"
+command = "last-workspace.toggle"
+description = "toggle last workspace"
+
+[theme]
+name = "terminal"
+auto_switch = false
+
+# Play the same bell Claude used, on agent state changes in background spaces.
+# (Only background spaces sound — none when you're already looking at it.)
+[ui.sound]
+enabled = true
+path = "/Users/tien.vu/.claude/freesound_community-bike-bell-40094.mp3"
+
+[ui.toast]
+delivery = "herdr"
+
+[ui]
+show_agent_labels_on_pane_borders = true
+
+# Sidebar footer per running agent: two lines.
+#   line 1: state icon · space · tab
+#   line 2: agent name
+agent_panel_sort = "spaces"
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "tab"], ["agent", "$pr"]]
+
+[experimental]
+pane_history = false
