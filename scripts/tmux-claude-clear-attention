@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#
+# tmux-claude-clear-attention — strip the ⚠️ attention prefix from a session
+# name once you've switched into it (see scripts/tmux-claude-attention,
+# wired into tmux.conf's client-session-changed hook).
+#
+set -euo pipefail
+
+session="$1"
+case "$session" in
+    "⚠️ "*) tmux rename-session -t "$session" "${session#⚠️ }" ;;
+esac

@@ -177,7 +177,9 @@ function aws() {
         echo "aws: no AWS_PROFILE set. Run: awssso <profile>  (or AWS_NO_VAULT=1 aws ...)" >&2
         return 1
     fi
-    command aws-vault exec --biometrics "$AWS_PROFILE" -- aws "$@"
+    # enable biometrics if hardware support
+    # command aws-vault exec --biometrics "$AWS_PROFILE" -- aws "$@"
+    command aws-vault exec "$AWS_PROFILE" -- aws "$@"
 }
 
 # ave is now just an alias preserved for muscle memory
@@ -229,11 +231,11 @@ function awssso() {
 #         eval $(decrypt.key.sh $BASTION | assume-role $AWS_PROFILE)
 #     fi
 # }
-function awsssh(){
-    ssh $(aws ec2 describe-instances \
-        --query "Reservations[*].Instances[*].[InstanceId, PrivateIpAddress, Tags[?Key=='Name'].Value | [0]]" \
-        --output text | column -t | peco | awk '{print $1}')
-}
+# function awsssh(){
+#     ssh $(aws ec2 describe-instances \
+#         --query "Reservations[*].Instances[*].[InstanceId, PrivateIpAddress, Tags[?Key=='Name'].Value | [0]]" \
+#         --output text | column -t | peco | awk '{print $1}')
+# }
 
 # https://github.com/SocketDev/sfw-free
 # software supply chain attack protection
@@ -262,17 +264,6 @@ complete -C '/usr/local/bin/aws_completer' aws
 # gcp settings
 # gcloud autocompletion
 # source /usr/share/google-cloud-sdk/completion.zsh.inc
-
-# mole — unified jumpbox tunnel CLI (see scripts/mole)
-alias cknpd='mole kube nonprod'    # clem-kube nonprod (one-shot kubectl)
-alias ckprd='mole kube prod'       # clem-kube prod    (one-shot kubectl)
-alias csnpd='mole shell nonprod'   # subshell with KUBECONFIG+aws-vault, k*/kubectl work
-alias csprd='mole shell prod'
-alias crnpd='mole rds  nonprod'    # clem-rds  nonprod
-alias crprd='mole rds  prod'       # clem-rds  prod
-alias cdnpd='mole dbeaver nonprod' # dbeaver  nonprod (tunnel + IAM token)
-alias cdprd='mole dbeaver prod'    # dbeaver  prod
-alias mdown='mole down'
 
 [[ -n "$MOLE_ENV" ]] && RPROMPT="%F{cyan}[mole:$MOLE_ENV]%f $RPROMPT"
 
@@ -355,7 +346,7 @@ export NVM_DIR="$HOME/.nvm"
 # complete -o nospace -C /usr/local/bin/terragrunt terragrunt
 
 # GO with custom installation path
-export GOROOT=$HOME/workspace/00_dotfiles/go
+export GOROOT=/usr/local/go/bin/go
 export GOPATH=$HOME/go
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 
@@ -422,15 +413,6 @@ export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init - zsh)"
 
-#. "$HOME/.local/bin/env"
-
-## Persuit
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/tien.vu/workspace/00_dotfiles/google-cloud-sdk/completion.zsh.inc'; fi
-
 # Hook
 autoload -U add-zsh-hook
 load-nvmrc() {
@@ -442,6 +424,5 @@ load-nvmrc() {
 }
 add-zsh-hook chpwd load-nvmrc
 load-nvmrc
-
 
 export CLAUDE_CODE_NO_FLICKER=0

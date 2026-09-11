@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(system_profiler SPDisplaysDataType)",
+      "Bash(tmux display *)",
+      "Bash(chmod +x *)",
+      "Bash(tmux source-file *)",
+      "Bash(tmux display-message *)",
+      "Read(//Users/tien.vu/.local/share/nvim/site/**)",
+      "Read(//Users/tien.vu/.local/share/nvim/**)",
+      "Read(//Users/tien.vu/.vim/plugged/**)",
+      "Read(//Users/tien.vu/.config/**)",
+      "Read(//Users/tien.vu/.tmux/plugins/**)",
+      "Read(//Users/tien.vu/.vim/**)",
+      "Bash(echo *)",
+      "Read(//opt/homebrew/Cellar/neovim/**)",
+      "Read(//opt/homebrew/Cellar/neovim/0.12.2/share/nvim/runtime/**)",
+      "Bash(python3 -m json.tool)",
+      "Bash(nvim --headless -u NONE -c 'set rtp+=~/.vim/plugged/Comment.nvim' -c 'set rtp+=~/.vim/plugged/nvim-treesitter' -c 'lua require\\('\\\\''Comment'\\\\''\\).setup\\(\\)' -c 'set filetype=yaml' -c 'normal! gcc' -c 'w! /private/tmp/claude-503/-Users-tien-vu-workspace-00-dotfiles-dotfiles/a5e083a2-ff11-4cef-b80a-7c3597b9699e/scratchpad/out2.yaml' -c qa! /private/tmp/claude-503/-Users-tien-vu-workspace-00-dotfiles-dotfiles/a5e083a2-ff11-4cef-b80a-7c3597b9699e/scratchpad/test.yaml)",
+      "Bash(nvim --headless -u NONE -c 'set rtp+=~/.vim/plugged/Comment.nvim' -c 'set rtp+=~/.vim/plugged/nvim-treesitter' -c 'lua require\\('\\\\''Comment'\\\\''\\).setup\\(\\)' -c 'set filetype=yaml' -c 'lua require\\('\\\\''Comment.api'\\\\''\\).toggle.linewise.current\\(\\)' -c 'w! /private/tmp/claude-503/-Users-tien-vu-workspace-00-dotfiles-dotfiles/a5e083a2-ff11-4cef-b80a-7c3597b9699e/scratchpad/out3.yaml' -c qa! /private/tmp/claude-503/-Users-tien-vu-workspace-00-dotfiles-dotfiles/a5e083a2-ff11-4cef-b80a-7c3597b9699e/scratchpad/test.yaml)",
+      "Bash(git *)",
+      "Bash(xargs -I{} sh -c 'echo {}; cat {}')",
+      "Bash(tmux kill-server *)",
+      "Bash(tmux new-session *)",
+      "Bash(tmux set-option *)",
+      "Bash(tmux list-sessions *)",
+      "Bash(tmux switch-client *)",
+      "Bash(tmux show-options *)",
+      "Bash(tmux -C new-session -t attn_a -d)",
+      "Bash(col -b)",
+      "WebFetch(domain:claude.ai)",
+      "Read(//Users/tien.vu/.claude/**)",
+      "Bash(gosak ec2 *)",
+      "Bash(gosak assume *)",
+      "Bash(tmux show-hooks *)",
+      "Bash(tmux set-hook *)"
+    ]
+  }
+}

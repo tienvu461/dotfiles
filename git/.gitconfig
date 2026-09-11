@@ -2,9 +2,11 @@
    branch = false
 [core]
     editor = nvim
+	excludesfile = /Users/tien.vu/workspace/.gitignore_global
+	hooksPath = /Users/tien.vu/.git-hooks
 [user]
-    name = tienvu461 
-    email = tienvu461@gmail.com
+    name = tienvv-ps
+    email = tien.vu@persuit.com
 [alias]
     s = status
     ba = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
@@ -19,6 +21,7 @@
 	co = checkout
 	cob = checkout -b
 	coo = !git fetch && git checkout
+	fo = fetch origin
 	aa = add -A .
 	cm = commit -m
 	aacm = !git add -A . && git commit

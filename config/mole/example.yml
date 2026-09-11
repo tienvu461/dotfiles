@@ -1,0 +1,57 @@
+# mole config — canonical example.
+#
+# Copy this file to ~/.config/mole/<env>.yml (e.g. nonprod.yml, prod.yml, sandbox.yml)
+# and fill in real values. The basename (minus .yml) becomes the env name used
+# by aliases and CLI args:
+#
+#   mole kube nonprod          ->  ~/.config/mole/nonprod.yml
+#   mole rds  preview          ->  ~/.config/mole/preview.yml
+#   mole ls                    -> list all envs found in ~/.config/mole/
+#
+# After copying:  chmod 600 ~/.config/mole/*.yml
+# Keep real infra identifiers OUT of any public repo.
+#
+# ────────────────────────────────────────────────────────────────────────────
+
+# Top-level: shared defaults for this env.
+
+jumpbox: jbox                   # required. ssh host alias from ~/.ssh/config
+aws_profile: npd-eu             # default aws-vault profile; overridable per-section
+socks_port: 1080                # optional. SOCKS5 listener for `mole kube` (default 1080)
+
+# ────────────────────────────────────────────────────────────────────────────
+# kube — `mole kube <env> [-- kubectl-args...]`
+#   Opens (idempotent) SOCKS5 tunnel via jumpbox, then runs kubectl wrapped in
+#   aws-vault exec <aws_profile>. The kubeconfig must already have
+#   proxy-url=socks5://127.0.0.1:<socks_port> set on its cluster entry.
+
+kube:
+  kubeconfig: ~/.kube/ienonprod.config   # required. path to env-specific kubeconfig
+  # aws_profile: npd-eu                  # optional. override top-level aws_profile
+
+# ────────────────────────────────────────────────────────────────────────────
+# rds — `mole rds <env>`
+#   Foreground `ssh -L <local_port>:<host>:<remote_port> <jumpbox>`. Ctrl-C closes.
+#   AWS auth is delegated to ~/.ssh/config ProxyCommand (typically
+#   `aws-vault exec <profile> -- aws ssm start-session …`). mole does NOT wrap
+#   ssh — run `mole rds` from a NON-aws-vault shell so the ProxyCommand can
+#   open its own vault subshell.
+
+rds:
+  host: REPLACE-ME.rds.amazonaws.com     # required. RDS proxy / writer endpoint
+  local_port: 55432                      # optional. local listener (default 55432)
+  remote_port: 5432                      # optional. remote port (default 5432)
+
+  # Below fields only needed by `mole dbeaver <env>` (IAM auth token + DBeaver launch):
+  # aws_profile: persuit-nonprod-admin   # required for token gen if no top-level aws_profile
+  # region: eu-west-1                    # optional. default inherits top-level `region` or eu-west-1
+  # database: clementine                 # required for dbeaver. DB name
+  # username: clementine                 # required for dbeaver. IAM-authenticated DB user
+  # connection_name: clem-preview        # optional. DBeaver tab name (default: <env>-<database>)
+
+# ────────────────────────────────────────────────────────────────────────────
+# Suggested env naming (matches the aliases in zsh/.zshrc):
+#   nonprod.yml   -> cknpd / crnpd
+#   prod.yml      -> ckprd / crprd
+# Add more as needed (sandbox.yml, demo.yml, preview.yml, …) — they show up in
+# `mole ls` automatically and can be invoked as `mole kube <name>`.

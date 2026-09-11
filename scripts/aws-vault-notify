@@ -1,0 +1,478 @@
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------------
+# aws-vault-notify — a thin, transparent wrapper around the real `aws-vault`.
+#
+# Why: several Claude Code sessions (and shells) run in parallel, each in its
+# own herdr pane. Any of them can call `aws-vault exec <profile> -- …`, which
+# pops a Touch ID dialog — but the dialog says nothing about WHICH pane / window
+# / conversation triggered it, and with dozens of reviews a day a raw pane id is
+# useless to a human. So just before handing off, this wrapper fires a
+# notification naming the two things you can actually recognise: the PROFILE
+# (which env — is this prod?) and the COMMAND it's about to run (`kubectl get
+# pods …`), plus the herdr workspace LABEL and conversation title as the "where".
+#
+# Severity: every call is scored into one of 5 levels, by color, from the verb
+# being run (readonly: get/list/describe/… vs mutating: everything else),
+# the profile's ROLE (a `*-ro` profile vs an eng/admin one), and the ACCOUNT
+# (`*prd*`/`*prod*`/`*master*` vs nonprod):
+#   ⚪ white  - readonly verb + `-ro` role + nonprod  -> banner only, quietest
+#   🔵 blue   - readonly verb + `-ro` role + prod/master
+#   🟣 purple - readonly verb + a non-`-ro` (eng/admin) role, any account
+#   🟡 yellow - mutating verb (set/delete/change/…) + nonprod
+#   🔴 red    - mutating verb + prod/master           -> loudest, most beeps,
+#                                                          plus a verbose echo
+#                                                          to the terminal
+# See compute_severity()/severity_meta(). This is a NAIVE heuristic — it greps
+# the command for a handful of readonly-verb tokens and defaults to "mutating"
+# on no match (erring loud is safer than erring quiet). It doesn't understand
+# any CLI's real grammar. ponytail: upgrade path is per-tool verb tables if
+# false positives/negatives become a real problem.
+#
+# Backend: AUTO by default — every severity gets the COLORBOX, a native, non-
+# activating toast (see aws-vault-colorbox.js) filled with the severity's
+# color, auto-sized to the command text, positioned on whichever screen
+# currently has the mouse cursor, showing the command in FULL (no truncation),
+# with an escalating beep count (0/1/1/2/3 for white/blue/purple/yellow/red)
+# and auto-dismiss after SEV_SECS. This is still entirely NON-BLOCKING — Touch
+# ID is, and remains, the only real gate; the whole notify step runs in a
+# backgrounded subshell (see `main`), so `exec` of the real command never
+# waits on it. The Touch ID prompt is a SYSTEM-GLOBAL dialog — it pops over
+# whatever app you're in (Chrome, Slack, …), so the hint about which window
+# triggered it must be system-global too; the colorbox is (NSWindow at a high
+# level, joins all Spaces). Override the auto pick via AWS_VAULT_NOTIFY_BACKEND
+# — e.g. `dialog` for the older full-screen-modal behavior, or `macos` for a
+# plain banner (herdr also falls back to macOS when herdr can't show it — it
+# displays one at a time and reports "busy" otherwise).
+# One-time setup for macOS banners/dialogs: System Settings › Notifications ›
+# Script Editor › Allow Notifications + "Banners" (else banners land silently
+# in the Notification Center). The colorbox and dialog need no such opt-in.
+#
+# It is deliberately transparent: it `exec`s the real binary with the original
+# argv, so exit code, stdin/stdout/stderr and signals all pass straight
+# through. The notification is built + sent in a BACKGROUND subshell, so it adds
+# ~zero latency to the credential path and can never delay or break aws-vault.
+#
+# Deployment (dotfiles): this file is symlinked to ~/.local/bin/aws-vault, which
+# sits ahead of everything on $PATH — so it intercepts every `aws-vault` call and
+# then hands off to the real, Homebrew-managed binary at /opt/homebrew/bin/
+# aws-vault (kept current by workbrew). A stale manual copy that used to live at
+# ~/.local/bin/aws-vault is backed up aside when the symlink goes in. resolve_real
+# below also honours ~/.local/bin/aws-vault-real, so you can pin a specific binary
+# if ever needed (a FIXED path, never an env override — see resolve_real). See
+# install.sh + CLAUDE.md symlink map.
+#
+# Privacy: the command after `--` IS shown (that's the whole point — it's the
+# most recognisable signal). This is safe: aws-vault injects credentials as env
+# vars, never onto the argv, so the command line carries no secret; and the
+# notification is ephemeral, local, and only ever shown to you. It is never
+# written to any persistent log. For the rare call whose argv itself is
+# sensitive (e.g. a password in a connection string), AWS_VAULT_NOTIFY_NOCMD=1
+# hides the command, and AWS_VAULT_NOTIFY_QUIET=1 suppresses the notification.
+#
+# Env knobs:
+#   AWS_VAULT_NOTIFY_BACKEND=colorbox|macos|herdr|both|dialog|none  where to
+#                              notify. Default is AUTO = colorbox for every
+#                              severity (see aws-vault-colorbox.js). Set this
+#                              to override for every severity. macos = plain
+#                              system-global banner; herdr = in-terminal only,
+#                              falls back to macos when it can't show; both =
+#                              banner + herdr toast; dialog = the older modal
+#                              (see notify_dialog); none = silent.
+#   AWS_VAULT_NOTIFY_DIALOG_TIMEOUT=<secs>  auto-dismiss the dialog after N secs
+#                              (default 30) so it can never linger; Touch ID stays
+#                              the real gate, the dialog is just the readable hint.
+#   AWS_VAULT_NOTIFY_QUIET=1   suppress the notification for this one call
+#   AWS_VAULT_NOTIFY_NOCMD=1   hide the command (show just profile + workspace)
+#   AWS_VAULT_NOTIFY_DEBUG=1   print parsed subcmd/profile/cmd + backend to
+#                              stderr (no secrets) and skip the exec, for testing
+#
+# Rollback: `rm ~/.local/bin/aws-vault` (the symlink) — the real binary at
+# /opt/homebrew/bin/aws-vault becomes the one on PATH again. Also drop the
+# install.sh line so `make install` won't recreate the symlink. See CLAUDE.md.
+# ----------------------------------------------------------------------------
+
+# Capture the cwd in THIS (foreground) process before we fork the notifier — the
+# backgrounded subshell keeps $PWD, but grabbing it up front keeps intent clear.
+WRAP_PWD="$PWD"
+
+# fixed, sibling path — not an env override, same rationale as resolve_real below.
+# This script is normally invoked through the ~/.local/bin/aws-vault SYMLINK, and
+# bash's BASH_SOURCE does not follow symlinks, so resolve it by hand (portable
+# readlink loop — macOS's readlink has no -f) before deriving the sibling path.
+resolve_self_dir() {
+  local src="${BASH_SOURCE[0]:-$0}" dir target
+  while [ -L "$src" ]; do
+    dir="$(cd "$(dirname "$src")" && pwd)"
+    target="$(readlink "$src")"
+    case "$target" in /*) src="$target" ;; *) src="$dir/$target" ;; esac
+  done
+  cd "$(dirname "$src")" && pwd
+}
+COLORBOX_JS="$(resolve_self_dir)/aws-vault-colorbox.js"
+
+# --- resolve the real binary -------------------------------------------------
+# SECURITY: the candidate list is FIXED — no caller-supplied path. This wrapper
+# is symlinked to ~/.local/bin/aws-vault, first on $PATH, and runs on the
+# credential path ahead of Touch ID. An env override (the old
+# $AWS_VAULT_REAL_BIN) would let anything that can set an env var on the argv —
+# e.g. a Claude Code agent, which the permission hooks skip VAR=val prefixes for
+# — redirect the exec to an arbitrary binary with no prompt. To pin a specific
+# real binary, put it at ~/.local/bin/aws-vault-real (checked first below); do
+# not reintroduce an env-controlled path.
+resolve_real() {
+  local c self
+  for c in "$HOME/.local/bin/aws-vault-real" \
+           /opt/homebrew/bin/aws-vault \
+           /usr/local/bin/aws-vault; do
+    [ -n "$c" ] && [ -x "$c" ] && { printf '%s' "$c"; return 0; }
+  done
+  # last resort: some OTHER aws-vault on PATH (never this wrapper itself)
+  self="$(cd "$(dirname "$0")" 2>/dev/null && pwd)/$(basename "$0")"
+  local p
+  while IFS= read -r p; do
+    [ -n "$p" ] && [ "$p" != "$self" ] && [ -x "$p" ] && { printf '%s' "$p"; return 0; }
+  done < <(type -aP aws-vault 2>/dev/null)
+  return 1
+}
+
+# --- parse `aws-vault [globals] <subcmd> [opts] <profile> [-- cmd…]` ----------
+# Fills SUBCMD, PROFILE and CMD (the command after `--`); any may stay empty.
+# Best-effort: a mis-parse can only mislabel a notification, never affect the
+# exec'd command.
+SUBCMD=""; PROFILE=""; CMD=""
+parse_args() {
+  # flags that consume the NEXT argv token as their value (separated form)
+  local valflags=" -d --duration -t --mfa-token --region --sts-endpoint --keychain --backend --prompt --config "
+  local expect_val=0 seen_sub=0 after=0 tok
+  local -a cmd_parts=()
+  for tok in "$@"; do
+    if [ "$after" -eq 1 ]; then cmd_parts+=("$tok"); continue; fi   # after `--`
+    if [ "$expect_val" -eq 1 ]; then expect_val=0; continue; fi
+    if [ "$tok" = "--" ]; then after=1; continue; fi
+    case "$tok" in
+      -*)
+        case "$tok" in
+          *=*) : ;;                         # --flag=value is self-contained
+          *) case "$valflags" in *" $tok "*) expect_val=1 ;; esac ;;
+        esac
+        continue ;;
+    esac
+    if [ "$seen_sub" -eq 0 ]; then SUBCMD="$tok"; seen_sub=1
+    elif [ -z "$PROFILE" ]; then PROFILE="$tok"; fi
+  done
+  CMD="${cmd_parts[*]}"
+}
+
+# --- run a command with a hard 2s cap, capture stdout -----------------------
+# There is no timeout/gtimeout on this machine, so a hung herdr server must not
+# be able to wedge aws-vault. Used for every herdr socket query below.
+cap2s() {
+  local tmp pid wpid
+  tmp="$(mktemp -t awsvaultwrap.XXXXXX 2>/dev/null)" || return 1
+  ( "$@" >"$tmp" 2>/dev/null ) & pid=$!
+  ( sleep 2; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 & wpid=$!
+  wait "$pid" 2>/dev/null
+  kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
+  cat "$tmp" 2>/dev/null
+  rm -f "$tmp" 2>/dev/null
+}
+
+# --- resolve the human "where" from herdr -----------------------------------
+# Sets H_WHERE (workspace label + conversation title for agent panes) and
+# H_CWD. Returns non-zero if there's no usable herdr context. Deliberately uses
+# the workspace LABEL ("config"), never the pane id — a pane id means nothing
+# to a human reviewing dozens of things a day.
+gather_herdr() {
+  H_WHERE=""; H_CWD=""
+  [ -n "${HERDR_PANE_ID:-}" ] || return 1
+  command -v herdr >/dev/null 2>&1 || return 1
+  local pj ws title agent wj label
+  pj="$(cap2s herdr pane get "$HERDR_PANE_ID")"
+  [ -n "$pj" ] || return 1
+  IFS=$'\t' read -r ws title agent H_CWD < <(
+    printf '%s' "$pj" | jq -r '.result.pane
+      | [ (.workspace_id // ""), (.terminal_title_stripped // ""), (.agent // ""), (.foreground_cwd // .cwd // "") ]
+      | @tsv' 2>/dev/null)
+  label="$ws"
+  if [ -n "$ws" ]; then
+    wj="$(cap2s herdr workspace get "$ws")"
+    local l; l="$(printf '%s' "$wj" | jq -r '.result.workspace.label // empty' 2>/dev/null)"
+    [ -n "$l" ] && label="$l"
+  fi
+  # conversation title only helps for an agent (Claude) pane; for a shell/editor
+  # pane it's just the program name, so drop it and lean on the workspace label.
+  if [ -n "$agent" ] && [ "$agent" != "none" ] && [ -n "$title" ]; then
+    H_WHERE="ws ${label} · ${title}"
+  else
+    H_WHERE="ws ${label}"
+  fi
+  return 0
+}
+
+# --- severity: verb + role + account -> white/blue/purple/yellow/red -------
+# Readonly verb check. ponytail: naive token grep, not a real CLI parser —
+# matches "get"/"list"/etc as a bare word or as a "describe-instances"-style
+# hyphenated head (the AWS CLI convention). No match -> caller treats it as
+# mutating, which is the safer default (a false "mutating" only shows a louder
+# dialog for a harmless read; a false "readonly" would quiet down a real
+# write).
+is_readonly_verb() {
+  [ -n "$1" ] || return 1
+  printf '%s' "$1" | grep -Eq '(^|[[:space:]])(get|list|describe|show|logs|status|top|explain|diff)(-[a-zA-Z0-9_-]+)?([[:space:]]|$)'
+}
+
+# profile -> prod account, by a HYPHEN-bounded token match (not a bare glob) —
+# a bare `*prod*` would also match "nonprod" as a substring (a real profile
+# here: persuit-nonprod-ro), silently promoting nonprod to prod severity.
+is_prod_account() {
+  [ -n "$1" ] || return 1
+  printf '%s' "$1" | grep -Eq '(^|-)(prod|prd|master)(-|$)'
+}
+
+# profile/role/account -> severity name. CMD may be empty (login/export/
+# rotate have no `--` command) — that's treated as mutating, so those always
+# land on yellow/red depending on the account, never white/blue/purple.
+compute_severity() {
+  local profile="$1" cmd="$2" prod=0 verb_ro=0 role_ro=0
+  is_prod_account "$profile" && prod=1
+  is_readonly_verb "$cmd" && verb_ro=1
+  case "$profile" in *-ro) role_ro=1 ;; esac
+
+  if [ "$verb_ro" -eq 0 ]; then
+    if [ "$prod" -eq 1 ]; then echo red; else echo yellow; fi
+  else
+    if [ "$role_ro" -eq 0 ]; then
+      echo purple
+    elif [ "$prod" -eq 1 ]; then
+      echo blue
+    else
+      echo white
+    fi
+  fi
+}
+
+# severity name -> display knobs. Sets SEV_LABEL/SEV_EMOJI/SEV_ICON/SEV_SOUND/
+# SEV_BEEPS/SEV_FILL/SEV_TEXT/SEV_SECS (globals, same convention as
+# gather_herdr's H_*). FILL/TEXT are the colorbox backend's box fill + text
+# colors; SECS is how long it stays on screen before auto-dismissing — 0 means
+# it does NOT auto-dismiss, it stays up until its close button is clicked
+# (yellow/purple/red: higher-risk actions worth requiring an explicit acknowledgment).
+severity_meta() {
+  case "$1" in
+    white)  SEV_LABEL="WHITE";  SEV_EMOJI="⚪"; SEV_ICON="note";    SEV_SOUND="none";   SEV_BEEPS=0; SEV_FILL="#E5E5EA"; SEV_TEXT="#1C1C1E"; SEV_SECS=7 ;;
+    blue)   SEV_LABEL="BLUE";   SEV_EMOJI="🔵"; SEV_ICON="note";    SEV_SOUND="Tink";   SEV_BEEPS=1; SEV_FILL="#0A84FF"; SEV_TEXT="#FFFFFF"; SEV_SECS=9 ;;
+    purple) SEV_LABEL="PURPLE"; SEV_EMOJI="🟣"; SEV_ICON="note";    SEV_SOUND="Pop";    SEV_BEEPS=1; SEV_FILL="#BF5AF2"; SEV_TEXT="#FFFFFF"; SEV_SECS=0 ;;
+    yellow) SEV_LABEL="YELLOW"; SEV_EMOJI="🟡"; SEV_ICON="caution"; SEV_SOUND="Basso";  SEV_BEEPS=2; SEV_FILL="#FFD60A"; SEV_TEXT="#1C1C1E"; SEV_SECS=0 ;;
+    red)    SEV_LABEL="RED";    SEV_EMOJI="🔴"; SEV_ICON="stop";    SEV_SOUND="Sosumi"; SEV_BEEPS=3; SEV_FILL="#FF453A"; SEV_TEXT="#FFFFFF"; SEV_SECS=0 ;;
+    *)      SEV_LABEL="UNKNOWN"; SEV_EMOJI="❔"; SEV_ICON="caution"; SEV_SOUND="Tink";  SEV_BEEPS=0; SEV_FILL="#8E8E93"; SEV_TEXT="#FFFFFF"; SEV_SECS=6 ;;
+  esac
+}
+
+# --- notification backends ---------------------------------------------------
+# herdr's own in-terminal toast. Returns 0 only if herdr actually showed it
+# (it shows one at a time and reports {"shown":false,"reason":"busy"} otherwise,
+# which is the caller's cue to fall back to macOS so nothing is missed).
+notify_herdr() {
+  local out
+  out="$(cap2s herdr notification show "$1" --body "$2" --sound request)"
+  case "$out" in *'"shown":true'*) return 0 ;; *) return 1 ;; esac
+}
+
+# macOS banner. Strings go to osascript as argv (not interpolated into the
+# AppleScript source) so a quote/backslash in a title can't break or inject.
+# sound defaults to Tink; pass "none" (as severity_meta does for white) to
+# skip the sound clause entirely.
+notify_macos() {
+  local sound="${4:-Tink}"
+  /usr/bin/osascript - "$1" "$2" "$3" "$sound" >/dev/null 2>&1 <<'OSA'
+on run argv
+  set snd to item 4 of argv
+  if snd is "none" then
+    display notification (item 3 of argv) with title (item 1 of argv) subtitle (item 2 of argv)
+  else
+    display notification (item 3 of argv) with title (item 1 of argv) subtitle (item 2 of argv) sound name snd
+  end if
+end run
+OSA
+}
+
+# Full-command modal DIALOG — the default for PROD profiles. Unlike a banner it
+# does NOT truncate: it shows the WHOLE command, wrapped, so you can read exactly
+# what's about to run before you approve the Touch ID prompt (which blocks in
+# parallel — Touch ID, not this dialog, is the gate). The caller backgrounds it
+# and `giving up after N` self-dismisses it, so it can never linger or wedge the
+# credential path. SECURITY: like notify_macos, every string is passed as argv
+# (on run argv), NEVER interpolated into the AppleScript source, so an
+# attacker-controlled command can't inject AppleScript to auto-dismiss or click
+# through. The command is shown RAW/unstripped here on purpose — this is the
+# audit surface, so an anomalous `env LD_PRELOAD=…` prefix must be visible, not
+# tidied away (that tidy-up is banner-only; see clean_cmd_head).
+#
+# icon/beeps come from severity_meta: note/1 for blue+purple, caution/2 for
+# yellow, stop/3 for red — an escalating, audible+visual severity cue on top
+# of the color-coded emoji already in the title.
+notify_dialog() {
+  local secs="${AWS_VAULT_NOTIFY_DIALOG_TIMEOUT:-30}"
+  case "$secs" in ''|*[!0-9]*) secs=30 ;; esac
+  local icon="${5:-caution}" beeps="${6:-0}"
+  /usr/bin/osascript - "$1" "$2" "$3" "$4" "$secs" "$icon" "$beeps" >/dev/null 2>&1 <<'OSA'
+on run argv
+  set n to (item 7 of argv) as integer
+  repeat n times
+    beep
+    delay 0.15
+  end repeat
+  set iconArg to item 6 of argv
+  set theIcon to caution
+  if iconArg is "note" then
+    set theIcon to note
+  else if iconArg is "stop" then
+    set theIcon to stop
+  end if
+  set theMsg to "Command:" & return & (item 2 of argv) & return & return & (item 3 of argv) & return & (item 4 of argv)
+  display dialog theMsg with title (item 1 of argv) buttons {"OK"} default button "OK" giving up after ((item 5 of argv) as integer) with icon theIcon
+end run
+OSA
+}
+
+# Colored, rounded, auto-sized toast — the AUTO default for every severity
+# (see aws-vault-colorbox.js). Shows the FULL command like notify_dialog, but
+# non-activating (never steals focus/click-through) and fully non-blocking:
+# it's a plain background osascript process the caller already backgrounds,
+# so it can never delay exec. beeps come from severity_meta, same escalating
+# cue as notify_dialog; SECURITY: same argv-not-interpolated pattern as the
+# other backends. beeps is a script-controlled int (never caller input), so
+# interpolating it into the tiny inline AppleScript below is safe.
+notify_colorbox() {
+  local title="$1" body="$2" fill="$3" text="$4" secs="$5" beeps="${6:-0}"
+  if [ "$beeps" -gt 0 ] 2>/dev/null; then
+    /usr/bin/osascript -e "repeat $beeps times
+  beep
+  delay 0.15
+end repeat" >/dev/null 2>&1
+  fi
+  # stack concurrent boxes (parallel herdr panes both firing aws-vault at
+  # once) instead of overlapping exactly: count already-running colorbox
+  # processes and use that as this box's cascade slot. ponytail: racy (two
+  # boxes could grab the same slot) and a fixed offset step (an unusually
+  # tall box can still overlap the next slot) — good enough since they're
+  # short-lived and self-dismiss; upgrade to a real registry if collisions
+  # become a real annoyance.
+  local slot
+  slot="$(pgrep -f "$COLORBOX_JS" 2>/dev/null | wc -l | tr -d ' ')"
+  case "$slot" in ''|*[!0-9]*) slot=0 ;; esac
+  /usr/bin/osascript -l JavaScript "$COLORBOX_JS" "$title" "$body" "$fill" "$text" "$secs" "$slot" >/dev/null 2>&1
+}
+
+# Tidy the command for the BANNER only: drop a leading `env` token and a single
+# leading KUBECONFIG=… assignment — the exact benign prefix clem-kube-prod
+# prepends (`aws-vault exec <p> -- env KUBECONFIG=<path> kubectl …`, zshrc) — so
+# the real verb leads instead of being pushed off the truncated line. SECURITY:
+# deliberately narrow. It strips ONLY `env` and KUBECONFIG=, never arbitrary
+# VAR=val, so an unexpected LD_PRELOAD=/DYLD_*/AWS_* override stays visible. The
+# prod dialog shows the command unstripped regardless.
+clean_cmd_head() {
+  local s="$1"
+  case "$s" in "env "*) s="${s#env }" ;; esac
+  case "$s" in
+    "KUBECONFIG="*)
+      case "$s" in
+        *" "*) s="${s#* }" ;;   # drop the KUBECONFIG=<value> token (up to 1st space)
+        *)     s="" ;;
+      esac ;;
+  esac
+  printf '%s' "$s"
+}
+
+# --- build + send the notification (runs backgrounded) -----------------------
+send_notification() {
+  local subcmd="$1" profile="$2" cmd="$3" severity="$4"
+  local cmd_full cmd_disp where cwd
+
+  severity_meta "$severity"   # sets SEV_LABEL/SEV_EMOJI/SEV_ICON/SEV_SOUND/SEV_BEEPS/SEV_USE_DIALOG
+
+  # command display. cmd_full = raw (the dialog's audit surface); cmd_disp =
+  # tidied + truncated (the banner). Hidden on NOCMD or when there's no `--`
+  # command (login/subshell just show the subcommand).
+  if [ -n "$cmd" ] && [ -z "${AWS_VAULT_NOTIFY_NOCMD:-}" ]; then
+    cmd_full="$cmd"
+    cmd_disp="$(clean_cmd_head "$cmd")"
+    [ -z "$cmd_disp" ] && cmd_disp="$cmd"
+    [ "${#cmd_disp}" -gt 88 ] && cmd_disp="${cmd_disp:0:87}…"
+  else
+    cmd_full="(${subcmd})"; cmd_disp="(${subcmd})"
+  fi
+
+  # where — herdr workspace label (+ conversation title), else host
+  if gather_herdr; then
+    where="$H_WHERE"; cwd="${H_CWD:-$WRAP_PWD}"
+  else
+    where="$(hostname -s 2>/dev/null)"; cwd="$WRAP_PWD"
+  fi
+
+  # banner layout: the severity emoji + label in the TITLE (never truncated),
+  # the where in the subtitle, and the command in the MESSAGE (the roomiest
+  # field) — so the command's verb is what you see, not the env-var/path
+  # prefix that used to eat the whole line. Dialog title carries the same
+  # emoji + label.
+  local btitle="${SEV_EMOJI} ${profile}  [${SEV_LABEL}]"
+  local dtitle="${SEV_EMOJI} aws-vault ${subcmd} — ${profile}  [${SEV_LABEL}]"
+  local cbody; cbody="$(printf 'Command:\n%s\n\n%s\n%s' "$cmd_full" "$where" "$cwd")"
+
+  # backend: honour an explicit override, else AUTO -> colorbox for every
+  # severity (full command, color/beeps escalating by severity, non-blocking,
+  # never steals focus).
+  local auto="colorbox"
+  local backend="${AWS_VAULT_NOTIFY_BACKEND:-$auto}"
+
+  [ -n "${AWS_VAULT_NOTIFY_DEBUG:-}" ] && \
+    echo "aws-vault-notify:   severity='${severity}' auto='${auto}' backend='${backend}' cmd_disp='${cmd_disp}'" >&2
+
+  case "$backend" in
+    none)     : ;;
+    colorbox) notify_colorbox "$dtitle" "$cbody" "$SEV_FILL" "$SEV_TEXT" "$SEV_SECS" "$SEV_BEEPS" ;;
+    dialog)   notify_dialog "$dtitle" "$cmd_full" "$where" "$cwd" "$SEV_ICON" "$SEV_BEEPS" ;;
+    macos)    notify_macos  "$btitle" "$where" "$cmd_disp" "$SEV_SOUND" ;;
+    both)     notify_herdr  "$btitle" "${where} — ${cmd_disp}"; notify_macos "$btitle" "$where" "$cmd_disp" "$SEV_SOUND" ;;
+    herdr|*)  notify_herdr  "$btitle" "${where} — ${cmd_disp}" || notify_macos "$btitle" "$where" "$cmd_disp" "$SEV_SOUND" ;;
+  esac
+}
+
+# --- main --------------------------------------------------------------------
+REAL="$(resolve_real)" || {
+  echo "aws-vault (wrapper): cannot find the real aws-vault binary." >&2
+  echo "  Expected one of: ~/.local/bin/aws-vault-real, /opt/homebrew/bin/aws-vault, /usr/local/bin/aws-vault." >&2
+  exit 127
+}
+
+parse_args "$@"
+
+# Notify for the credential-assuming subcommands only (exec/login/export/rotate)
+# — all trigger Touch ID under AWS_VAULT_BIOMETRICS=1, including the *-ro
+# profiles. Skip when quiet, or when there's no profile to name.
+notify=0
+case "$SUBCMD" in exec|login|export|rotate) notify=1 ;; esac
+[ -z "$PROFILE" ] && notify=0
+
+SEVERITY=""
+[ "$notify" -eq 1 ] && SEVERITY="$(compute_severity "$PROFILE" "$CMD")"
+
+[ -n "${AWS_VAULT_NOTIFY_QUIET:-}" ] && notify=0
+
+if [ -n "${AWS_VAULT_NOTIFY_DEBUG:-}" ]; then
+  echo "aws-vault-notify: real=$REAL subcmd='$SUBCMD' profile='$PROFILE' cmd='$CMD' severity='${SEVERITY:-n/a}' backend='${AWS_VAULT_NOTIFY_BACKEND:-auto}' notify=$notify" >&2
+  [ "$notify" -eq 1 ] && send_notification "$SUBCMD" "$PROFILE" "$CMD" "$SEVERITY"
+  exit 0
+fi
+
+if [ "$notify" -eq 1 ]; then
+  # RED is the one severity that also gets verbose output printed straight to
+  # the terminal, synchronously, before exec — not just the backgrounded
+  # dialog — so it's visible even if the dialog is dismissed/missed.
+  if [ "$SEVERITY" = "red" ]; then
+    echo "🔴 aws-vault: RED severity — running '${SUBCMD}' as '${PROFILE}'${CMD:+: ${CMD}}" >&2
+  fi
+  ( send_notification "$SUBCMD" "$PROFILE" "$CMD" "$SEVERITY" ) >/dev/null 2>&1 &
+fi
+
+exec "$REAL" "$@"

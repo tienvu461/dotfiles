@@ -1,0 +1,17 @@
+# copy to ~/.config/mole/ and edit.
+#
+# This file holds real infra identifiers; keep it OUT of any public repo.
+# chmod 600 ~/.config/mole/*.yml
+
+jumpbox: jumpbox              # ssh host alias in ~/.ssh/config
+aws_profile: <profile_name>   # aws-vault profile name
+
+socks_port: 1080              # SOCKS5 listener for kube tunnel (default 1080)
+
+kube:
+  kubeconfig: ~/.kube/REPLACE-ME.config
+
+rds:
+  local_port: 55432           # local listener (default 55432)
+  host: REPLACE-ME.rds.amazonaws.com
+  remote_port: 5432

@@ -1,0 +1,307 @@
+#!/usr/bin/env bash
+# mole — burrow through a jumpbox into private VPC services.
+#
+# Subcommands:
+#   mole kube    <env> [-- kubectl-args...]   open SOCKS tunnel + run kubectl
+#   mole shell   <env>                        SOCKS tunnel + drop into aws-vault subshell
+#                                             with KUBECONFIG set (use k*/kubectl aliases)
+#   mole rds     <env> [-b]                   open ssh -L tunnel to RDS  (-b: background)
+#   mole dbeaver <env>                        background rds tunnel + IAM-token + launch DBeaver
+#   mole down                                 tear all mole tunnels down
+#   mole ls                                   list known envs (from ~/.config/mole/)
+#
+# Config: ~/.config/mole/<env>.yml — see config/mole/example.yml for full schema.
+#   jumpbox, aws_profile (default), socks_port
+#   kube: { aws_profile?, kubeconfig }
+#   rds:  { host, local_port?, remote_port?,
+#           aws_profile?, region?, database?, username?, connection_name? }
+#
+# AWS auth for `mole rds` is handled by ssh ProxyCommand in ~/.ssh/config.
+# `mole kube` and `mole dbeaver` use aws-vault for kubectl/token-gen.
+
+set -euo pipefail
+
+CONFIG_DIR="${MOLE_CONFIG_DIR:-$HOME/.config/mole}"
+PID_DIR="${TMPDIR:-/tmp}/mole"
+mkdir -p "$PID_DIR"
+
+die()  { echo "mole: $*" >&2; exit 1; }
+warn() { echo "mole: $*" >&2; }
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || die "missing dep: $1"
+}
+
+# vault_exec <profile> -- <cmd...>
+# If already inside an aws-vault subshell (AWS_VAULT set), creds are inherited;
+# skip the wrap rather than failing. Otherwise wrap in `aws-vault exec`.
+vault_exec() {
+  local profile="$1"; shift
+  [[ "${1:-}" == "--" ]] && shift
+  if [[ -n "${AWS_VAULT:-}" ]]; then
+    if [[ "${AWS_VAULT}" != "$profile" ]]; then
+      warn "already in aws-vault subshell for '${AWS_VAULT}', not '${profile}' — using current creds"
+    fi
+    # Unset the sentinel so any nested aws-vault (e.g. ssh ProxyCommand)
+    # doesn't refuse. STS creds remain in AWS_ACCESS_KEY_ID/SESSION_TOKEN.
+    unset AWS_VAULT
+    exec "$@"
+  fi
+  require aws-vault
+  exec aws-vault exec "$profile" -- "$@"
+}
+
+# read_yaml <env> <dotted.key> [default]
+read_yaml() {
+  local env="$1" key="$2" default="${3:-}"
+  local file="$CONFIG_DIR/${env}.yml"
+  [[ -f "$file" ]] || die "no config for env '$env' at $file (try: mole ls)"
+  python3 - "$file" "$key" "$default" <<'PY'
+import sys, yaml
+path, dotted, default = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path) as f:
+    data = yaml.safe_load(f) or {}
+cur = data
+for part in dotted.split("."):
+    if not isinstance(cur, dict) or part not in cur:
+        print(default)
+        sys.exit(0)
+    cur = cur[part]
+if cur is None:
+    print(default)
+else:
+    print(cur)
+PY
+}
+
+# vault_capture <profile> -- <cmd...> — like vault_exec but captures stdout
+# without exec-replacing the shell. Used when we still need to do more work
+# (e.g. launch dbeaver) after the AWS call.
+vault_capture() {
+  local profile="$1"; shift
+  [[ "${1:-}" == "--" ]] && shift
+  if [[ -n "${AWS_VAULT:-}" ]]; then
+    "$@"
+    return $?
+  fi
+  require aws-vault
+  aws-vault exec "$profile" -- "$@"
+}
+
+# ensure_rds_tunnel <jumpbox> <local_port> <host> <remote_port>
+# Idempotent background ssh -L. Drops AWS_VAULT so ProxyCommand can vault fresh.
+ensure_rds_tunnel() {
+  local jumpbox="$1" local_port="$2" host="$3" remote_port="$4"
+  local pidfile="$PID_DIR/rds-${local_port}.pid"
+  if nc -z 127.0.0.1 "$local_port" 2>/dev/null; then
+    return 0
+  fi
+  warn "opening RDS tunnel via $jumpbox  localhost:${local_port} -> ${host}:${remote_port} ..."
+  nohup env -u AWS_VAULT ssh -N \
+    -L "${local_port}:${host}:${remote_port}" \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \
+    "$jumpbox" >"$PID_DIR/rds-${local_port}.log" 2>&1 &
+  echo $! >"$pidfile"
+  disown
+  for _ in $(seq 1 60); do
+    nc -z 127.0.0.1 "$local_port" 2>/dev/null && return 0
+    sleep 0.5
+  done
+  die "rds tunnel failed; see $PID_DIR/rds-${local_port}.log"
+}
+
+ensure_socks() {
+  local jumpbox="$1" port="$2"
+  local pidfile="$PID_DIR/socks-${port}.pid"
+  if nc -z 127.0.0.1 "$port" 2>/dev/null; then
+    return 0
+  fi
+  warn "opening SOCKS5 tunnel via $jumpbox on 127.0.0.1:$port ..."
+  nohup env -u AWS_VAULT ssh -N -D "127.0.0.1:$port" \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \
+    "$jumpbox" >"$PID_DIR/socks-${port}.log" 2>&1 &
+  echo $! >"$pidfile"
+  disown
+  for _ in $(seq 1 30); do
+    nc -z 127.0.0.1 "$port" 2>/dev/null && return 0
+    sleep 0.5
+  done
+  die "tunnel failed; see $PID_DIR/socks-${port}.log"
+}
+
+cmd_kube() {
+  local env="${1:-}"; shift || true
+  [[ -n "$env" ]] || die "usage: mole kube <env> [-- kubectl-args...]"
+  require kubectl; require ssh; require nc
+
+  local jumpbox aws_profile socks_port kubeconfig
+  jumpbox=$(read_yaml "$env" jumpbox)
+  aws_profile=$(read_yaml "$env" kube.aws_profile)
+  [[ -n "$aws_profile" ]] || aws_profile=$(read_yaml "$env" aws_profile)
+  socks_port=$(read_yaml "$env" socks_port 1080)
+  kubeconfig=$(read_yaml "$env" kube.kubeconfig)
+  [[ -n "$jumpbox" && -n "$aws_profile" && -n "$kubeconfig" ]] || \
+    die "env '$env' missing one of: jumpbox, (kube.)aws_profile, kube.kubeconfig"
+  kubeconfig="${kubeconfig/#\~/$HOME}"
+  [[ -f "$kubeconfig" ]] || die "kubeconfig not found: $kubeconfig"
+
+  ensure_socks "$jumpbox" "$socks_port"
+
+  # strip leading -- if present
+  [[ "${1:-}" == "--" ]] && shift
+  vault_exec "$aws_profile" -- env KUBECONFIG="$kubeconfig" kubectl "$@"
+}
+
+cmd_rds() {
+  local env="${1:-}"; shift || true
+  [[ -n "$env" ]] || die "usage: mole rds <env> [-b]"
+  local bg=0
+  [[ "${1:-}" == "-b" || "${1:-}" == "--background" ]] && { bg=1; shift; }
+  require ssh; require nc
+
+  local jumpbox local_port host remote_port
+  jumpbox=$(read_yaml "$env" jumpbox)
+  local_port=$(read_yaml "$env" rds.local_port 55432)
+  host=$(read_yaml "$env" rds.host)
+  remote_port=$(read_yaml "$env" rds.remote_port 5432)
+  [[ -n "$jumpbox" && -n "$host" ]] || \
+    die "env '$env' missing one of: jumpbox, rds.host"
+
+  if [[ $bg -eq 1 ]]; then
+    ensure_rds_tunnel "$jumpbox" "$local_port" "$host" "$remote_port"
+    warn "tunnel backgrounded  localhost:${local_port} -> ${host}:${remote_port}"
+    warn "close with: mole down"
+    return 0
+  fi
+
+  if nc -z 127.0.0.1 "$local_port" 2>/dev/null; then
+    die "port $local_port already in use — another tunnel running?"
+  fi
+
+  warn "tunnel open  localhost:${local_port} -> ${host}:${remote_port} (via ${jumpbox})"
+  warn "Ctrl-C to close (or pass -b to background)"
+
+  # ssh handles its own AWS auth via ProxyCommand in ~/.ssh/config.
+  # Drop AWS_VAULT sentinel so nested `aws-vault exec` in ProxyCommand works
+  # even when mole is invoked from within an aws-vault subshell.
+  unset AWS_VAULT
+  exec ssh -N \
+    -L "${local_port}:${host}:${remote_port}" \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \
+    "$jumpbox"
+}
+
+cmd_shell() {
+  local env="${1:-}"; shift || true
+  [[ -n "$env" ]] || die "usage: mole shell <env>"
+  require ssh; require nc
+
+  local jumpbox aws_profile socks_port kubeconfig
+  jumpbox=$(read_yaml "$env" jumpbox)
+  aws_profile=$(read_yaml "$env" kube.aws_profile)
+  [[ -n "$aws_profile" ]] || aws_profile=$(read_yaml "$env" aws_profile)
+  socks_port=$(read_yaml "$env" socks_port 1080)
+  kubeconfig=$(read_yaml "$env" kube.kubeconfig)
+  [[ -n "$jumpbox" && -n "$aws_profile" && -n "$kubeconfig" ]] || \
+    die "env '$env' missing one of: jumpbox, (kube.)aws_profile, kube.kubeconfig"
+  kubeconfig="${kubeconfig/#\~/$HOME}"
+  [[ -f "$kubeconfig" ]] || die "kubeconfig not found: $kubeconfig"
+
+  ensure_socks "$jumpbox" "$socks_port"
+
+  warn "spawning subshell  KUBECONFIG=${kubeconfig}  AWS_PROFILE=${aws_profile}"
+  warn "exit to leave (tunnel stays up; use 'mole down' to close)"
+  export KUBECONFIG="$kubeconfig"
+  export MOLE_ENV="$env"
+  # Inside aws-vault subshell, STS creds inherit; kubectl exec-cred plugin uses them.
+  if [[ -n "${AWS_VAULT:-}" ]]; then
+    if [[ "$AWS_VAULT" != "$aws_profile" ]]; then
+      warn "already in aws-vault subshell for '$AWS_VAULT', not '$aws_profile' — using current creds"
+    fi
+    exec "${SHELL:-/bin/zsh}"
+  fi
+  require aws-vault
+  exec aws-vault exec "$aws_profile" -- "${SHELL:-/bin/zsh}"
+}
+
+cmd_dbeaver() {
+  local env="${1:-}"; shift || true
+  [[ -n "$env" ]] || die "usage: mole dbeaver <env>"
+  require ssh; require nc; require dbeaver
+
+  local jumpbox aws_profile local_port host remote_port region database username conn_name
+  jumpbox=$(read_yaml "$env" jumpbox)
+  aws_profile=$(read_yaml "$env" rds.aws_profile)
+  [[ -n "$aws_profile" ]] || aws_profile=$(read_yaml "$env" aws_profile)
+  local_port=$(read_yaml "$env" rds.local_port 55432)
+  host=$(read_yaml "$env" rds.host)
+  remote_port=$(read_yaml "$env" rds.remote_port 5432)
+  region=$(read_yaml "$env" rds.region)
+  [[ -n "$region" ]] || region=$(read_yaml "$env" region eu-west-1)
+  database=$(read_yaml "$env" rds.database)
+  username=$(read_yaml "$env" rds.username)
+  conn_name=$(read_yaml "$env" rds.connection_name "${env}-${database}")
+  [[ -n "$jumpbox" && -n "$host" && -n "$database" && -n "$username" && -n "$aws_profile" ]] || \
+    die "env '$env' needs: jumpbox, rds.host, rds.database, rds.username, (rds.)aws_profile"
+
+  ensure_rds_tunnel "$jumpbox" "$local_port" "$host" "$remote_port"
+
+  warn "generating IAM auth token for ${username}@${host}:${remote_port} (region ${region}) ..."
+  local token
+  token=$(vault_capture "$aws_profile" -- aws rds generate-db-auth-token \
+    --hostname "$host" --port "$remote_port" \
+    --username "$username" --region "$region") || die "token generation failed"
+  [[ -n "$token" ]] || die "empty token from aws rds generate-db-auth-token"
+
+  warn "launching DBeaver  connection='${conn_name}'"
+  exec dbeaver -con "driver=postgresql|host=localhost|port=${local_port}|database=${database}|user=${username}|password=${token}|name=${conn_name}|savePassword=true|openConsole=true|connect=true"
+}
+
+cmd_down() {
+  local killed=0
+  for pidfile in "$PID_DIR"/socks-*.pid "$PID_DIR"/rds-*.pid; do
+    [[ -f "$pidfile" ]] || continue
+    local pid; pid=$(cat "$pidfile")
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" && killed=$((killed+1))
+    fi
+    rm -f "$pidfile"
+  done
+  # also catch stray tunnel ssh processes started before pidfiles existed
+  pkill -f 'ssh -N -D 127.0.0.1:' 2>/dev/null || true
+  pkill -f 'ssh -N -L [0-9]*:' 2>/dev/null || true
+  warn "killed $killed tracked tunnel(s)"
+}
+
+cmd_ls() {
+  [[ -d "$CONFIG_DIR" ]] || die "no config dir: $CONFIG_DIR"
+  local found=0
+  for f in "$CONFIG_DIR"/*.yml; do
+    [[ -f "$f" ]] || continue
+    found=1
+    local base; base=$(basename "$f" .yml)
+    printf "  %s\n" "$base"
+  done
+  [[ $found -eq 1 ]] || warn "no envs found in $CONFIG_DIR"
+}
+
+usage() {
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+}
+
+main() {
+  local sub="${1:-}"; shift || true
+  case "$sub" in
+    kube)    cmd_kube "$@" ;;
+    shell)   cmd_shell "$@" ;;
+    rds)     cmd_rds  "$@" ;;
+    dbeaver) cmd_dbeaver "$@" ;;
+    down)    cmd_down ;;
+    ls)      cmd_ls ;;
+    ""|-h|--help|help) usage ;;
+    *) die "unknown subcommand: $sub (try: mole help)" ;;
+  esac
+}
+
+main "$@"

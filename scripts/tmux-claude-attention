@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# tmux-claude-attention — flag the current tmux session as "needs attention"
+#
+# Wired into Claude Code hooks (see ~/.claude/settings.json): Notification
+# (permission needed / idle waiting for input) and Stop (task finished).
+# Prefixes the session's name with ⚠️, so it shows up anywhere the name is
+# rendered (status line, prefix+s, prefix+w) instead of just the sound hook.
+#
+# The prefix auto-clears via tmux.conf's client-session-changed hook once you
+# switch into that session.
+#
+set -euo pipefail
+
+[[ -n "${TMUX:-}" ]] || exit 0
+
+session="$(tmux display-message -p '#S')"
+case "$session" in
+    "⚠️ "*) ;; # already flagged
+    *) tmux rename-session -t "$session" "⚠️ $session" ;;
+esac
